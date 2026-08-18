@@ -24,12 +24,16 @@ export function isDayOff(date: IsoDate, settings: Settings): boolean {
 }
 
 /**
- * Worked minutes for an entry.
+ * Worked minutes for an entry — the sum across every block on a `normal` day
+ * (one office morning plus a home-office evening is two blocks, added
+ * together).
  *
- * For a `normal` day this is the RAW span minus breaks, which may be negative
- * while the user is still typing. Returning the raw number lets the live preview
- * show '−0h 30m' instead of a misleading 0; `validateEntryInput` is what blocks
- * the save.
+ * Each block's RAW span minus its break is used, which may be negative while
+ * the user is still typing a block. Returning the raw number lets the live
+ * preview show '−0h 30m' instead of a misleading 0 for that block;
+ * `validateEntryInput` is what blocks the save. A block that isn't parseable
+ * yet (still empty, mid-edit) contributes 0 rather than aborting the sum, so
+ * finished blocks keep counting while another one is still being typed.
  *
  * Every other day type counts as that weekday's target, so its balance is
  * exactly 0 — a vacation day neither earns nor costs overtime. On a day off
@@ -38,10 +42,12 @@ export function isDayOff(date: IsoDate, settings: Settings): boolean {
  */
 export function workedMinutesFor(entry: TimeEntry, settings: Settings): number {
   if (entry.dayType !== 'normal') return targetMinutesFor(entry.date, settings);
-  const arrival = parseTimeOfDay(entry.arrival);
-  const leave = parseTimeOfDay(entry.leave);
-  if (arrival === null || leave === null) return 0;
-  return leave - arrival - (entry.breakMinutes ?? 0);
+  return entry.blocks.reduce((sum, block) => {
+    const arrival = parseTimeOfDay(block.arrival);
+    const leave = parseTimeOfDay(block.leave);
+    if (arrival === null || leave === null) return sum;
+    return sum + (leave - arrival - (block.breakMinutes ?? 0));
+  }, 0);
 }
 
 export function balanceMinutesFor(entry: TimeEntry, settings: Settings): number {

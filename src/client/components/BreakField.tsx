@@ -1,15 +1,16 @@
 export function BreakField({
-  value, onChange, onBlur, invalid, disabled,
+  value, onChange, onBlur, invalid, disabled, label = 'Pause in Minuten',
 }: {
   value: number;
   onChange: (value: number) => void;
   onBlur?: () => void;
   invalid?: boolean;
   disabled?: boolean;
+  label?: string;
 }) {
   return (
     <label className="field field-break">
-      <span className="visually-hidden">Pause in Minuten</span>
+      <span className="visually-hidden">{label}</span>
       <input
         type="number"
         min={0}
@@ -17,7 +18,7 @@ export function BreakField({
         step={5}
         inputMode="numeric"
         value={String(value)}
-        aria-label="Pause in Minuten"
+        aria-label={label}
         aria-invalid={invalid || undefined}
         disabled={disabled}
         // An emptied field means zero break, never NaN.

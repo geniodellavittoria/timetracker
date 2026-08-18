@@ -4,6 +4,12 @@ export type IsoDate = string;
 /** Time of day, 'HH:MM', 24-hour, zero-padded. */
 export type TimeOfDay = string;
 
+/** Never carries password data — `shared/` is imported by the client too. */
+export interface AuthUser {
+  id: number;
+  email: string;
+}
+
 export const DAY_TYPES = ['normal', 'vacation', 'sick', 'holiday'] as const;
 export type DayType = (typeof DAY_TYPES)[number];
 
@@ -19,13 +25,18 @@ export type WeekdayIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 /** Mon..Sun. */
 export type ByWeekday<T> = readonly [T, T, T, T, T, T, T];
 
+/** One arrival/leave/break span within a normal day — e.g. an office morning and a home-office evening. */
+export interface TimeBlock {
+  arrival: TimeOfDay;
+  leave: TimeOfDay;
+  breakMinutes: number;
+}
+
 export interface TimeEntry {
   date: IsoDate;
   dayType: DayType;
-  /** null for every non-`normal` day type. */
-  arrival: TimeOfDay | null;
-  leave: TimeOfDay | null;
-  breakMinutes: number | null;
+  /** Empty for every non-`normal` day type; one or more for `normal`. */
+  blocks: TimeBlock[];
   note: string | null;
   updatedAt: string;
 }

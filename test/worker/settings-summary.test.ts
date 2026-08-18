@@ -39,9 +39,7 @@ describe('settings', () => {
 describe('summary', () => {
   it('computes worked, target and balance per day', async () => {
     await putJson('/api/entries/2026-08-17', normalDay({ leave: '17:15', breakMinutes: 45 })); // 510
-    await putJson('/api/entries/2026-08-18', {
-      dayType: 'vacation', arrival: null, leave: null, breakMinutes: null, note: null,
-    });
+    await putJson('/api/entries/2026-08-18', { dayType: 'vacation' });
 
     const s = await (await request(
       '/api/summary?from=2026-08-17&to=2026-08-23&groupBy=none&today=2026-08-21',

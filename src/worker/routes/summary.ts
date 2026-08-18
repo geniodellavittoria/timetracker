@@ -36,10 +36,11 @@ summaryRoutes.get('/', async (c) => {
   }
   const today = todayParam ?? new Date().toISOString().slice(0, 10);
 
-  const settings = await getSettings(c.env.DB);
+  const userId = c.get('userId');
+  const settings = await getSettings(c.env.DB, userId);
   const [entries, allEntriesUpTo] = await Promise.all([
-    listEntries(c.env.DB, from!, to!),
-    listEntriesUpTo(c.env.DB, to!),
+    listEntries(c.env.DB, userId, from!, to!),
+    listEntriesUpTo(c.env.DB, userId, to!),
   ]);
 
   return c.json(

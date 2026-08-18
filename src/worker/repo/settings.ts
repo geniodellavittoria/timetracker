@@ -34,13 +34,13 @@ function toDomain(row: SettingsRow): Settings {
   };
 }
 
-export async function getSettings(db: D1Database): Promise<Settings> {
-  const row = await db.prepare(`SELECT ${COLUMNS} FROM settings WHERE id = 1`).first<SettingsRow>();
-  if (!row) throw new Error('Settings row is missing — has the migration been applied?');
+export async function getSettings(db: D1Database, userId: number): Promise<Settings> {
+  const row = await db.prepare(`SELECT ${COLUMNS} FROM settings WHERE user_id = ?1`).bind(userId).first<SettingsRow>();
+  if (!row) throw new Error(`Settings row is missing for user ${userId} — was it provisioned at registration?`);
   return toDomain(row);
 }
 
-export async function updateSettings(db: D1Database, input: SettingsInput): Promise<Settings> {
+export async function updateSettings(db: D1Database, userId: number, input: SettingsInput): Promise<Settings> {
   const [mon, tue, wed, thu, fri, sat, sun] = input.targetMinutesByWeekday;
   await db
     .prepare(
@@ -51,9 +51,27 @@ export async function updateSettings(db: D1Database, input: SettingsInput): Prom
          target_minutes_thu = ?6, target_minutes_fri = ?7, target_minutes_sat = ?8,
          target_minutes_sun = ?9,
          updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')
-       WHERE id = 1`,
+       WHERE user_id = ?10`,
     )
-    .bind(input.fullTimeWeeklyMinutes, input.workloadPercentX10, mon, tue, wed, thu, fri, sat, sun)
+    .bind(input.fullTimeWeeklyMinutes, input.workloadPercentX10, mon, tue, wed, thu, fri, sat, sun, userId)
     .run();
-  return getSettings(db);
+  return getSettings(db, userId);
+}
+
+/**
+ * A 42h/100% week, Mon–Fri, Sat/Sun off — the same defaults `0001_init.sql`
+ * seeded for the single pre-accounts row. Called once at registration for
+ * every new user (unless they instead inherit the legacy row's values via
+ * the claim in `routes/auth.ts`).
+ */
+export async function provisionDefaultSettings(db: D1Database, userId: number): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO settings (user_id, full_time_weekly_minutes, workload_percent_x10,
+         target_minutes_mon, target_minutes_tue, target_minutes_wed,
+         target_minutes_thu, target_minutes_fri, target_minutes_sat, target_minutes_sun)
+       VALUES (?1, 2520, 1000, 504, 504, 504, 504, 504, 0, 0)`,
+    )
+    .bind(userId)
+    .run();
 }

@@ -14,7 +14,7 @@ entriesRoutes.get('/', async (c) => {
   const issues = validateRange(from, to);
   if (issues.length) return validationError(c, issues);
 
-  return c.json({ entries: await listEntries(c.env.DB, from!, to!) });
+  return c.json({ entries: await listEntries(c.env.DB, c.get('userId'), from!, to!) });
 });
 
 entriesRoutes.get('/:date', async (c) => {
@@ -24,7 +24,7 @@ entriesRoutes.get('/:date', async (c) => {
       { path: 'date', code: 'invalid_date', message: 'Kein gültiges Datum (JJJJ-MM-TT).' },
     ]);
   }
-  const entry = await getEntry(c.env.DB, date);
+  const entry = await getEntry(c.env.DB, c.get('userId'), date);
   return entry ? c.json(entry) : notFound(c, `Kein Eintrag für ${date}.`);
 });
 
@@ -45,7 +45,7 @@ entriesRoutes.put('/:date', async (c) => {
   const issues = validateEntryInput(input);
   if (issues.length) return validationError(c, issues);
 
-  const { entry, created } = await upsertEntry(c.env.DB, date, input);
+  const { entry, created } = await upsertEntry(c.env.DB, c.get('userId'), date, input);
   return c.json(entry, created ? 201 : 200);
 });
 
@@ -56,6 +56,6 @@ entriesRoutes.delete('/:date', async (c) => {
       { path: 'date', code: 'invalid_date', message: 'Kein gültiges Datum (JJJJ-MM-TT).' },
     ]);
   }
-  const deleted = await deleteEntry(c.env.DB, date);
+  const deleted = await deleteEntry(c.env.DB, c.get('userId'), date);
   return deleted ? c.body(null, 204) : notFound(c, `Kein Eintrag für ${date}.`);
 });

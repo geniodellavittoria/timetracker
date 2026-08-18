@@ -7,7 +7,7 @@ import { getSettings, updateSettings } from '../repo/settings.ts';
 
 export const settingsRoutes = new Hono<HonoEnv>();
 
-settingsRoutes.get('/', async (c) => c.json(await getSettings(c.env.DB)));
+settingsRoutes.get('/', async (c) => c.json(await getSettings(c.env.DB, c.get('userId'))));
 
 settingsRoutes.put('/', async (c) => {
   const raw = await c.req.json().catch(() => null);
@@ -18,5 +18,5 @@ settingsRoutes.put('/', async (c) => {
     ...parsed.data,
     targetMinutesByWeekday: parsed.data.targetMinutesByWeekday as unknown as ByWeekday<number>,
   };
-  return c.json(await updateSettings(c.env.DB, input));
+  return c.json(await updateSettings(c.env.DB, c.get('userId'), input));
 });

@@ -3,52 +3,59 @@ import { validateEntryInput } from '@shared/validation.ts';
 import type { ValidationIssue } from '@shared/validation.ts';
 import type { DayType, TimeEntry, TimeEntryInput } from '@shared/types.ts';
 
-export interface DayDraft {
-  dayType: DayType;
+export interface TimeBlockDraft {
   arrival: string;
   leave: string;
   breakMinutes: number;
+}
+
+export interface DayDraft {
+  dayType: DayType;
+  blocks: TimeBlockDraft[];
 }
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 const AUTOSAVE_DELAY_MS = 600;
 
+const emptyBlock = (): TimeBlockDraft => ({ arrival: '', leave: '', breakMinutes: 0 });
+
 function draftFrom(entry: TimeEntry | null): DayDraft {
   return {
     dayType: entry?.dayType ?? 'normal',
-    arrival: entry?.arrival ?? '',
-    leave: entry?.leave ?? '',
-    breakMinutes: entry?.breakMinutes ?? 0,
+    // A brand new normal day starts with one empty block ready to type into,
+    // matching the old single-block UI's default state.
+    blocks: entry && entry.blocks.length > 0
+      ? entry.blocks.map((b) => ({ ...b }))
+      : [emptyBlock()],
   };
 }
 
-/** An empty time input yields '', which must become null rather than an invalid ''. */
+/** A block nobody has touched yet ('', '', 0) doesn't count as real input. */
+function isBlankBlock(block: TimeBlockDraft): boolean {
+  return block.arrival === '' && block.leave === '' && block.breakMinutes === 0;
+}
+
 export function draftToInput(draft: DayDraft): TimeEntryInput {
   if (draft.dayType !== 'normal') {
-    return { dayType: draft.dayType, arrival: null, leave: null, breakMinutes: null, note: null };
+    return { dayType: draft.dayType, blocks: [], note: null };
   }
   return {
     dayType: 'normal',
-    arrival: draft.arrival === '' ? null : draft.arrival,
-    leave: draft.leave === '' ? null : draft.leave,
-    breakMinutes: draft.breakMinutes,
+    blocks: draft.blocks.filter((b) => !isBlankBlock(b)).map((b) => ({ ...b })),
     note: null,
   };
 }
 
 /** Content identity of an entry, so a refetch returning the same row is a no-op. */
 function signatureOf(entry: TimeEntry | null): string {
-  return entry
-    ? `${entry.dayType}|${entry.arrival}|${entry.leave}|${entry.breakMinutes}|${entry.updatedAt}`
-    : 'none';
+  if (!entry) return 'none';
+  const blocks = entry.blocks.map((b) => `${b.arrival}-${b.leave}-${b.breakMinutes}`).join(',');
+  return `${entry.dayType}|${blocks}|${entry.updatedAt}`;
 }
 
 function isEmptyDraft(draft: DayDraft): boolean {
-  return draft.dayType === 'normal'
-    && draft.arrival === ''
-    && draft.leave === ''
-    && draft.breakMinutes === 0;
+  return draft.dayType === 'normal' && draft.blocks.every(isBlankBlock);
 }
 
 export function useDayForm({
@@ -63,9 +70,9 @@ export function useDayForm({
   const [serverIssues, setServerIssues] = useState<ValidationIssue[]>([]);
   const [dirty, setDirty] = useState(false);
 
-  // Remembers times across a switch to Vacation and back, so toggling day type
-  // by accident does not throw away what was typed.
-  const stashedTimes = useRef({ arrival: draft.arrival, leave: draft.leave, breakMinutes: draft.breakMinutes });
+  // Remembers blocks across a switch to Vacation and back, so toggling day
+  // type by accident does not throw away what was typed.
+  const stashedBlocks = useRef<TimeBlockDraft[]>(draft.blocks);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -123,18 +130,26 @@ export function useDayForm({
       const next = { ...prev, ...patch };
 
       if (patch.dayType && patch.dayType !== prev.dayType) {
-        if (prev.dayType === 'normal') {
-          stashedTimes.current = {
-            arrival: prev.arrival, leave: prev.leave, breakMinutes: prev.breakMinutes,
-          };
-        }
+        if (prev.dayType === 'normal') stashedBlocks.current = prev.blocks;
         return patch.dayType === 'normal'
-          ? { ...next, ...stashedTimes.current }
-          : { ...next, arrival: '', leave: '', breakMinutes: 0 };
+          ? { ...next, blocks: stashedBlocks.current }
+          : { ...next, blocks: [] };
       }
       return next;
     });
   }, []);
+
+  const updateBlock = useCallback((index: number, patch: Partial<TimeBlockDraft>) => {
+    update({ blocks: draft.blocks.map((b, i) => (i === index ? { ...b, ...patch } : b)) });
+  }, [draft.blocks, update]);
+
+  const addBlock = useCallback(() => {
+    update({ blocks: [...draft.blocks, emptyBlock()] });
+  }, [draft.blocks, update]);
+
+  const removeBlock = useCallback((index: number) => {
+    update({ blocks: draft.blocks.filter((_, i) => i !== index) });
+  }, [draft.blocks, update]);
 
   // Autosave is only safe because the validation gate blocks partial input:
   // a half-typed '08:0' never parses, so it never reaches the network.
@@ -154,6 +169,9 @@ export function useDayForm({
   return {
     draft,
     update,
+    updateBlock,
+    addBlock,
+    removeBlock,
     flush,
     status,
     issues: allIssues,

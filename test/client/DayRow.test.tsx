@@ -79,7 +79,7 @@ describe('DayRow', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/pause ist länger/i);
     // A valid intermediate state may autosave; the invalid one never may.
     expect(savedPayloads(onSave)).not.toContainEqual(
-      expect.objectContaining({ breakMinutes: 600 }),
+      expect.objectContaining({ blocks: [expect.objectContaining({ breakMinutes: 600 })] }),
     );
   });
 
@@ -93,7 +93,7 @@ describe('DayRow', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent(/nachtschicht/i);
     expect(savedPayloads(onSave)).not.toContainEqual(
-      expect.objectContaining({ leave: '06:00' }),
+      expect.objectContaining({ blocks: [expect.objectContaining({ leave: '06:00' })] }),
     );
   });
 
@@ -118,5 +118,58 @@ describe('DayRow', () => {
 
     expect(screen.getByText('4 Std 00 Min')).toBeInTheDocument();
     expect(screen.getByText('+4 Std 00 Min')).toBeInTheDocument();
+  });
+
+  it('sums a second time block (e.g. an evening of home office) into the worked total', async () => {
+    const user = userEvent.setup();
+    renderRow(MON, fullTime);
+
+    await user.type(screen.getByLabelText('Kommen'), '08:00');
+    await user.type(screen.getByLabelText('Gehen'), '12:00');
+
+    await user.click(screen.getByRole('button', { name: /weiterer zeitblock/i }));
+    await user.type(screen.getByLabelText('Kommen (Block 2)'), '20:00');
+    await user.type(screen.getByLabelText('Gehen (Block 2)'), '21:00');
+
+    // 4h + 1h = 5h, computed locally with no network involved.
+    expect(screen.getByText('5 Std 00 Min')).toBeInTheDocument();
+  });
+
+  it('rejects overlapping blocks on the same day', async () => {
+    const user = userEvent.setup();
+    const { onSave } = renderRow(MON, fullTime);
+
+    await user.type(screen.getByLabelText('Kommen'), '08:00');
+    await user.type(screen.getByLabelText('Gehen'), '17:00');
+    await user.click(screen.getByRole('button', { name: /weiterer zeitblock/i }));
+    await user.type(screen.getByLabelText('Kommen (Block 2)'), '16:00');
+    await user.type(screen.getByLabelText('Gehen (Block 2)'), '18:00');
+    await user.tab();
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/nicht überschneiden/i);
+    // The first block alone is a valid intermediate state and may autosave;
+    // the overlapping two-block state never may.
+    expect(savedPayloads(onSave)).not.toContainEqual(
+      expect.objectContaining({
+        blocks: expect.arrayContaining([expect.objectContaining({ arrival: '16:00' })]),
+      }),
+    );
+  });
+
+  it('removes a block via its own ✕, keeping the other block and its total', async () => {
+    const user = userEvent.setup();
+    renderRow(MON, fullTime);
+
+    await user.type(screen.getByLabelText('Kommen'), '08:00');
+    await user.type(screen.getByLabelText('Gehen'), '12:00');
+    await user.click(screen.getByRole('button', { name: /weiterer zeitblock/i }));
+    await user.type(screen.getByLabelText('Kommen (Block 2)'), '20:00');
+    await user.type(screen.getByLabelText('Gehen (Block 2)'), '21:00');
+    expect(screen.getByText('5 Std 00 Min')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /zeitblock 1 entfernen/i }));
+
+    expect(screen.queryByLabelText('Kommen (Block 2)')).not.toBeInTheDocument();
+    expect(screen.getByText('1 Std 00 Min')).toBeInTheDocument();
   });
 });

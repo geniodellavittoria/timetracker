@@ -1,17 +1,27 @@
-import { basicAuth } from 'hono/basic-auth';
+import { getCookie } from 'hono/cookie';
 import type { MiddlewareHandler } from 'hono';
 import type { HonoEnv } from './env.ts';
+import { errorBody } from './errors.ts';
+import { findSessionByToken } from './repo/sessions.ts';
+
+export const SESSION_COOKIE = 'session';
+
+/** Registration/login/logout must stay reachable while logged out; everything else under `/api` requires a session. */
+const PUBLIC_API_PATHS = new Set(['/api/health', '/api/auth/register', '/api/auth/login', '/api/auth/logout']);
 
 /**
- * Password gate for the whole app, UI included — which is why wrangler.jsonc sets
- * `run_worker_first`, so assets don't bypass this.
- *
- * With APP_PASSWORD unset there is no prompt at all, keeping local dev
- * frictionless. In production it is a Worker secret:
- *   wrangler secret put APP_PASSWORD
+ * Cookie-session gate for the API only — the SPA shell itself (and its
+ * `/login` route) is served unauthenticated; the client redirects when
+ * `GET /api/auth/me` 401s. `run_worker_first` in wrangler.jsonc still routes
+ * `/api/*` to the Worker; it's unrelated to this gate.
  */
-export const authGate: MiddlewareHandler<HonoEnv> = async (c, next) => {
-  const password = c.env.APP_PASSWORD;
-  if (!password) return next();
-  return basicAuth({ username: 'me', password })(c, next);
+export const sessionAuth: MiddlewareHandler<HonoEnv> = async (c, next) => {
+  if (!c.req.path.startsWith('/api/') || PUBLIC_API_PATHS.has(c.req.path)) return next();
+
+  const token = getCookie(c, SESSION_COOKIE);
+  const session = token ? await findSessionByToken(c.env.DB, token) : null;
+  if (!session) return c.json(errorBody('unauthorized', 'Bitte anmelden.'), 401);
+
+  c.set('userId', session.userId);
+  return next();
 };

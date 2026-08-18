@@ -4,13 +4,15 @@ Eine persönliche Arbeitszeiterfassung. Kommen, Pausenminuten und Gehen eintrage
 die Arbeitsstunden berechnet, pro Tag summiert und als laufender Überstundensaldo gegen ein pro
 Wochentag konfigurierbares Ziel geführt.
 
-Einzelbenutzer, keine Konten. Läuft kostenlos auf Cloudflare Workers mit einer D1-Datenbank.
+Mehrbenutzerfähig, mit eigenem Konto pro Person — jede Person sieht nur ihre eigenen Einträge und
+Einstellungen. Läuft kostenlos auf Cloudflare Workers mit einer D1-Datenbank.
 
 ## Was die App macht
 
-- **Eine Zeile pro Tag**: Kommen, Pausenminuten, Gehen → Arbeitsstunden, live beim Tippen berechnet.
+- **Mehrere Zeitblöcke pro Tag**: z. B. vormittags im Büro, abends nochmal von zu Hause aus —
+  jeder Block mit eigenem Kommen, Gehen und Pause, zusammengezählt zur Tagesarbeitszeit.
 - **Ziele pro Wochentag**, mit einem Pensum-Panel — "42-Std-Woche, 80 %, Freitag frei" eingeben
-  und die Verteilung überlassen.
+  und die Verteilung übernimmt die App automatisch.
 - **Freie Tage überall in der Woche.** Ein Ziel von 0 *ist* ein freier Tag — Wochenenden sind
   nicht speziell, ein freier Tag mitten in der Woche funktioniert genau gleich. Stunden, die an
   einem freien Tag trotzdem gearbeitet werden, zählen als reine Überzeit.
@@ -37,7 +39,6 @@ Reload, auf einem Origin — so entspricht das lokale Verhalten der Produktion.
 
 ```bash
 npm run db:remote                      # Migrationen auf die Produktionsdatenbank anwenden
-npx wrangler secret put APP_PASSWORD   # Passwort setzen (siehe unten)
 npm run deploy                         # → https://timetracker.<your-subdomain>.workers.dev
 ```
 
@@ -49,13 +50,17 @@ Jahr erfasst, erzeugt ein paar hundert Zeilen.
 Verifikation des laufenden Deployments und eine Tabelle, was bei einem fehlgeschlagenen Schritt
 zu tun ist.
 
-### Passwortschutz
+### Konten
 
-Die deployte URL ist öffentlich, daher `APP_PASSWORD` als Worker-Secret setzen. Die ganze App
-liegt dann hinter HTTP Basic Auth — UI wie API — mit dem Benutzernamen `me`.
+Es gibt kein Setup-Passwort mehr — die deployte App hat eine eigene **Registrieren**/**Anmelden**-
+Seite. Die API ist per Cookie-Session geschützt (`POST /api/auth/register`, `/login`, `/logout`);
+nur die eigentliche Anwendungsoberfläche (`/login`, `/register`) ist ohne Anmeldung erreichbar.
 
-Lokal ist die Sperre aus, ausser eine `.dev.vars`-Datei wird angelegt (siehe
-`.dev.vars.example`), damit die Entwicklung reibungslos bleibt.
+Falls diese Instanz schon Daten aus der Zeit vor Konten enthält: Die *erste* Registrierung
+übernimmt diese Daten automatisch. Um zu verhindern, dass eine fremde Person das durch schnelles
+Registrieren an sich reisst, vor der ersten echten Registrierung optional
+`wrangler secret put LEGACY_CLAIM_EMAIL` setzen — nur diese E-Mail-Adresse darf dann die alten
+Daten übernehmen. Details in [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ## Scripts
 

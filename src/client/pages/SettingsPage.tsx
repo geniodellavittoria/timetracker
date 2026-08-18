@@ -51,8 +51,21 @@ export function SettingsPage() {
   );
   const perDay = workingDayCount > 0 ? Math.round(plannedWeekly / workingDayCount) : 0;
 
-  const applyWorkload = () => {
-    patch({ targets: [...distributeWeeklyTarget(plannedWeekly, draft.worksOn)] });
+  // Applied inline from each workload input's own handler (not a useEffect on
+  // the draft) so it never fires on initial load and clobbers hand-tuned
+  // per-weekday hours the moment Settings opens — only an actual change to
+  // one of these three inputs should re-distribute the targets.
+  const applyWorkloadWith = (
+    next: Partial<Pick<Draft, 'fullTimeWeeklyHours' | 'workloadPercent' | 'worksOn'>>,
+  ) => {
+    const fullTimeWeeklyHours = next.fullTimeWeeklyHours ?? draft.fullTimeWeeklyHours;
+    const workloadPercent = next.workloadPercent ?? draft.workloadPercent;
+    const worksOn = next.worksOn ?? draft.worksOn;
+    const weekly = weeklyTargetMinutes(
+      hoursToMinutes(fullTimeWeeklyHours || 0),
+      Math.round((workloadPercent || 0) * 10),
+    );
+    patch({ ...next, targets: [...distributeWeeklyTarget(weekly, worksOn)] });
   };
 
   const currentWeekly = draft.targets.reduce((a, b) => a + b, 0);
@@ -90,7 +103,7 @@ export function SettingsPage() {
               <input
                 type="number" min={0} max={168} step={0.5} inputMode="decimal"
                 value={String(draft.fullTimeWeeklyHours)}
-                onChange={(e) => patch({ fullTimeWeeklyHours: Number(e.target.value) })}
+                onChange={(e) => applyWorkloadWith({ fullTimeWeeklyHours: Number(e.target.value) })}
               />
               <span className="faint">Std</span>
             </span>
@@ -102,7 +115,7 @@ export function SettingsPage() {
               <input
                 type="number" min={0} max={100} step={5} inputMode="decimal"
                 value={String(draft.workloadPercent)}
-                onChange={(e) => patch({ workloadPercent: Number(e.target.value) })}
+                onChange={(e) => applyWorkloadWith({ workloadPercent: Number(e.target.value) })}
               />
               <span className="faint">%</span>
             </span>
@@ -114,7 +127,7 @@ export function SettingsPage() {
                 key={preset.label}
                 type="button"
                 className="small"
-                onClick={() => patch({ fullTimeWeeklyHours: minutesToHoursValue(preset.weeklyMinutes) })}
+                onClick={() => applyWorkloadWith({ fullTimeWeeklyHours: minutesToHoursValue(preset.weeklyMinutes) })}
               >
                 {preset.label}
               </button>
@@ -132,7 +145,7 @@ export function SettingsPage() {
                 onChange={(e) => {
                   const worksOn = [...draft.worksOn];
                   worksOn[i] = e.target.checked;
-                  patch({ worksOn });
+                  applyWorkloadWith({ worksOn });
                 }}
               />
               <span>{WEEKDAY_LABELS[i]}</span>
@@ -148,7 +161,6 @@ export function SettingsPage() {
                 <strong>{formatDuration(perDay)}</strong> pro Tag</>
             )}
           </span>
-          <button type="button" onClick={applyWorkload}>Auf Wochentage anwenden</button>
         </div>
       </div>
 

@@ -15,9 +15,11 @@ export type IssueCode =
   | 'leave_not_after_arrival'
   | 'break_negative'
   | 'break_exceeds_span'
+  | 'blocks_overlap'
   | 'invalid_range'
   | 'range_too_large'
-  | 'invalid_target';
+  | 'invalid_target'
+  | 'email_taken';
 
 export interface ValidationIssue {
   path: string;
@@ -33,13 +35,30 @@ export const timeOfDaySchema = z
 
 export const dayTypeSchema = z.enum(DAY_TYPES);
 
-export const entryInputSchema = z.strictObject({
-  dayType: dayTypeSchema,
-  arrival: timeOfDaySchema.nullable(),
-  leave: timeOfDaySchema.nullable(),
-  breakMinutes: z.number().int().min(0).max(MINUTES_PER_DAY).nullable(),
-  note: z.string().max(500).nullable().default(null),
+export const blockInputSchema = z.strictObject({
+  arrival: timeOfDaySchema,
+  leave: timeOfDaySchema,
+  breakMinutes: z.number().int().min(0).max(MINUTES_PER_DAY),
 });
+
+export const entryInputSchema = z.discriminatedUnion('dayType', [
+  z.strictObject({
+    dayType: z.literal('normal'),
+    blocks: z.array(blockInputSchema).min(1, 'Bitte mindestens einen Zeitblock erfassen.'),
+    note: z.string().max(500).nullable().default(null),
+  }),
+  z.strictObject({
+    dayType: z.enum(['vacation', 'sick', 'holiday']),
+    // Optional on the wire (the client never sends it for a special day), but
+    // always present once parsed, so `TimeEntryInput.blocks` is never
+    // undefined regardless of day type. Deliberately not length-capped here —
+    // shape only; `validateEntryInput` is what rejects a special day
+    // carrying blocks, with the specific `times_not_allowed_for_special_day`
+    // code rather than a generic schema error.
+    blocks: z.array(blockInputSchema).optional().default([]),
+    note: z.string().max(500).nullable().default(null),
+  }),
+]);
 
 export const settingsInputSchema = z.strictObject({
   targetMinutesByWeekday: z.array(z.number().int().min(0).max(MINUTES_PER_DAY)).length(7),
@@ -48,6 +67,31 @@ export const settingsInputSchema = z.strictObject({
 });
 
 export const groupBySchema = z.enum(['week', 'month', 'none']).default('none');
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(320, 'Die E-Mail-Adresse ist zu lang.')
+  .refine((v) => EMAIL_RE.test(v), 'Ungültige E-Mail-Adresse.');
+
+export const passwordSchema = z
+  .string()
+  .min(8, 'Das Passwort muss mindestens 8 Zeichen lang sein.')
+  .max(200, 'Das Passwort ist zu lang.');
+
+export const registerInputSchema = z.strictObject({
+  email: emailSchema,
+  password: passwordSchema,
+});
+
+export const loginInputSchema = z.strictObject({
+  email: emailSchema,
+  // No length/strength check here — a login attempt should never leak the password policy.
+  password: z.string().min(1, 'Bitte Passwort eingeben.'),
+});
 
 /**
  * The business rules, in one place, shared by the client's live preview and the
@@ -63,7 +107,7 @@ export function validateEntryInput(input: TimeEntryInput): ValidationIssue[] {
   }
 
   if (input.dayType !== 'normal') {
-    if (input.arrival !== null || input.leave !== null || (input.breakMinutes ?? 0) !== 0) {
+    if (input.blocks.length > 0) {
       issues.push({
         path: 'dayType',
         code: 'times_not_allowed_for_special_day',
@@ -73,43 +117,67 @@ export function validateEntryInput(input: TimeEntryInput): ValidationIssue[] {
     return issues;
   }
 
-  const arrival = parseTimeOfDay(input.arrival);
-  const leave = parseTimeOfDay(input.leave);
-
-  if (input.arrival === null || input.leave === null) {
-    issues.push({
-      path: 'arrival',
+  if (input.blocks.length === 0) {
+    return [{
+      path: 'blocks',
       code: 'times_required_for_normal_day',
-      message: 'Bitte Kommen und Gehen erfassen.',
-    });
-    return issues;
-  }
-  if (arrival === null) {
-    issues.push({ path: 'arrival', code: 'invalid_time', message: 'Kommen ist keine gültige Uhrzeit.' });
-  }
-  if (leave === null) {
-    issues.push({ path: 'leave', code: 'invalid_time', message: 'Gehen ist keine gültige Uhrzeit.' });
-  }
-  if (arrival === null || leave === null) return issues;
-
-  if (leave <= arrival) {
-    issues.push({
-      path: 'leave',
-      code: 'leave_not_after_arrival',
-      message: 'Gehen muss nach Kommen liegen — Nachtschichten werden nicht unterstützt.',
-    });
-    return issues;
+      message: 'Bitte mindestens einen Zeitblock erfassen.',
+    }];
   }
 
-  const breakMinutes = input.breakMinutes ?? 0;
-  if (breakMinutes < 0) {
-    issues.push({ path: 'breakMinutes', code: 'break_negative', message: 'Die Pause darf nicht negativ sein.' });
-  } else if (breakMinutes > leave - arrival) {
-    issues.push({
-      path: 'breakMinutes',
-      code: 'break_exceeds_span',
-      message: 'Die Pause ist länger als die Zeit zwischen Kommen und Gehen.',
-    });
+  const parsed: { arrival: number; leave: number; breakMinutes: number; index: number }[] = [];
+
+  input.blocks.forEach((block, index) => {
+    const arrival = parseTimeOfDay(block.arrival);
+    const leave = parseTimeOfDay(block.leave);
+    if (arrival === null) {
+      issues.push({ path: `blocks.${index}.arrival`, code: 'invalid_time', message: 'Kommen ist keine gültige Uhrzeit.' });
+    }
+    if (leave === null) {
+      issues.push({ path: `blocks.${index}.leave`, code: 'invalid_time', message: 'Gehen ist keine gültige Uhrzeit.' });
+    }
+    if (arrival === null || leave === null) return;
+
+    if (leave <= arrival) {
+      issues.push({
+        path: `blocks.${index}.leave`,
+        code: 'leave_not_after_arrival',
+        message: 'Gehen muss nach Kommen liegen — Nachtschichten werden nicht unterstützt.',
+      });
+      return;
+    }
+
+    const breakMinutes = block.breakMinutes ?? 0;
+    if (breakMinutes < 0) {
+      issues.push({ path: `blocks.${index}.breakMinutes`, code: 'break_negative', message: 'Die Pause darf nicht negativ sein.' });
+      return;
+    }
+    if (breakMinutes > leave - arrival) {
+      issues.push({
+        path: `blocks.${index}.breakMinutes`,
+        code: 'break_exceeds_span',
+        message: 'Die Pause ist länger als die Zeit zwischen Kommen und Gehen.',
+      });
+      return;
+    }
+    parsed.push({ arrival, leave, breakMinutes, index });
+  });
+
+  if (issues.length > 0) return issues;
+
+  // Overlapping blocks would silently double-count worked minutes when
+  // summed, so this is a correctness check, not just tidiness — sort by
+  // start time and require each block to begin at or after the previous
+  // one's end.
+  const byArrival = [...parsed].sort((a, b) => a.arrival - b.arrival);
+  for (let i = 1; i < byArrival.length; i += 1) {
+    if (byArrival[i]!.arrival < byArrival[i - 1]!.leave) {
+      issues.push({
+        path: `blocks.${byArrival[i]!.index}.arrival`,
+        code: 'blocks_overlap',
+        message: 'Zeitblöcke dürfen sich nicht überschneiden.',
+      });
+    }
   }
 
   return issues;

@@ -4,13 +4,35 @@ import {
   todayIsoDateLocal,
 } from '@shared/dates.ts';
 import { BalanceBadge } from './components/BalanceBadge.tsx';
+import { LoginPage } from './pages/LoginPage.tsx';
 import { MonthPage } from './pages/MonthPage.tsx';
+import { RegisterPage } from './pages/RegisterPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
 import { WeekPage } from './pages/WeekPage.tsx';
-import { useSummary } from './api/queries.ts';
+import { useLogout, useMe, useSummary } from './api/queries.ts';
 
 export function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/*" element={<AuthGate><AuthenticatedApp /></AuthGate>} />
+    </Routes>
+  );
+}
+
+/** Everything but /login and /register requires a session; unauthenticated visitors are sent to /login. */
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { data: user, isLoading } = useMe();
+  if (isLoading) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function AuthenticatedApp() {
   const today = todayIsoDateLocal();
+  const { data: user } = useMe();
+  const logout = useLogout();
 
   return (
     <>
@@ -23,6 +45,10 @@ export function App() {
         </nav>
         <span className="spacer" />
         <CumulativeBalance />
+        {user && <span className="faint small">{user.email}</span>}
+        <button type="button" className="ghost small" onClick={() => logout.mutate()} disabled={logout.isPending}>
+          Abmelden
+        </button>
       </header>
 
       <main className="app">

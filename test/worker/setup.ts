@@ -1,6 +1,7 @@
 import { applyD1Migrations, env } from 'cloudflare:test';
 import { beforeAll, beforeEach } from 'vitest';
 import type { D1Migration } from '@cloudflare/vitest-pool-workers';
+import { registerTestUser, setDefaultCookie } from './helpers.ts';
 
 declare global {
   namespace Cloudflare {
@@ -17,19 +18,18 @@ beforeAll(async () => {
 
 /**
  * Reset explicitly rather than leaning on the pool's storage isolation: every
- * test then starts from an empty log and the seeded 42h/100% settings,
- * regardless of what ran before it.
+ * test then starts from an empty log with a single fresh, authenticated
+ * test user — regardless of what ran before it. Tests that specifically
+ * exercise multi-user behavior register additional users of their own via
+ * `registerTestUser` without touching the default cookie.
  */
 beforeEach(async () => {
   await env.DB.batch([
+    env.DB.prepare('DELETE FROM sessions'),
     env.DB.prepare('DELETE FROM entries'),
-    env.DB.prepare(
-      `UPDATE settings SET
-         full_time_weekly_minutes = 2520, workload_percent_x10 = 1000,
-         target_minutes_mon = 504, target_minutes_tue = 504, target_minutes_wed = 504,
-         target_minutes_thu = 504, target_minutes_fri = 504,
-         target_minutes_sat = 0,   target_minutes_sun = 0
-       WHERE id = 1`,
-    ),
+    env.DB.prepare('DELETE FROM settings'),
+    env.DB.prepare('DELETE FROM users'),
   ]);
+  const { cookie } = await registerTestUser();
+  setDefaultCookie(cookie);
 });

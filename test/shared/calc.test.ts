@@ -30,21 +30,18 @@ const fullTime = settings([504, 504, 504, 504, 504, 0, 0]);
 /** 80%: same daily hours, Friday off. */
 const partTime = settings([504, 504, 504, 504, 0, 0, 0], { workloadPercentX10: 800 });
 
-function entry(date: string, over: Partial<TimeEntry> = {}): TimeEntry {
+function entry(date: string, blockOver: Partial<{ arrival: string; leave: string; breakMinutes: number }> = {}): TimeEntry {
   return {
     date,
     dayType: 'normal',
-    arrival: '08:00',
-    leave: '17:00',
-    breakMinutes: 0,
+    blocks: [{ arrival: '08:00', leave: '17:00', breakMinutes: 0, ...blockOver }],
     note: null,
     updatedAt: '2026-08-18T10:00:00Z',
-    ...over,
   };
 }
 
 function specialDay(date: string, dayType: DayType): TimeEntry {
-  return entry(date, { dayType, arrival: null, leave: null, breakMinutes: null });
+  return { date, dayType, blocks: [], note: null, updatedAt: '2026-08-18T10:00:00Z' };
 }
 
 describe('workedMinutesFor', () => {
@@ -79,6 +76,34 @@ describe('workedMinutesFor', () => {
     const vacation = specialDay(FRI, 'vacation');
     expect(workedMinutesFor(vacation, partTime)).toBe(0);
     expect(balanceMinutesFor(vacation, partTime)).toBe(0);
+  });
+
+  it('sums several blocks on the same day (e.g. office morning + home-office evening)', () => {
+    const split: TimeEntry = {
+      date: MON,
+      dayType: 'normal',
+      blocks: [
+        { arrival: '08:00', leave: '12:00', breakMinutes: 0 }, // 240
+        { arrival: '20:00', leave: '21:00', breakMinutes: 0 }, // 60
+      ],
+      note: null,
+      updatedAt: '2026-08-18T10:00:00Z',
+    };
+    expect(workedMinutesFor(split, fullTime)).toBe(300);
+  });
+
+  it('ignores an unparseable (still-being-typed) block rather than aborting the sum', () => {
+    const partial: TimeEntry = {
+      date: MON,
+      dayType: 'normal',
+      blocks: [
+        { arrival: '08:00', leave: '12:00', breakMinutes: 0 }, // 240
+        { arrival: '', leave: '', breakMinutes: 0 }, // still empty — contributes 0, not NaN
+      ],
+      note: null,
+      updatedAt: '2026-08-18T10:00:00Z',
+    };
+    expect(workedMinutesFor(partial, fullTime)).toBe(240);
   });
 });
 

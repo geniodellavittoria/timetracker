@@ -1,14 +1,49 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
-  GroupBy, IsoDate, RangeSummary, Settings, SettingsInput, TimeEntry, TimeEntryInput,
+  AuthUser, GroupBy, IsoDate, RangeSummary, Settings, SettingsInput, TimeEntry, TimeEntryInput,
 } from '@shared/types.ts';
 import { api } from './client.ts';
 
 export const queryKeys = {
+  me: ['me'] as const,
   settings: ['settings'] as const,
   summary: (from: IsoDate, to: IsoDate, groupBy: GroupBy, today: IsoDate) =>
     ['summary', from, to, groupBy, today] as const,
 };
+
+export function useMe() {
+  return useQuery({
+    queryKey: queryKeys.me,
+    queryFn: () => api.get<AuthUser>('/auth/me'),
+    retry: false,
+  });
+}
+
+export function useRegister() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { email: string; password: string }) => api.post<AuthUser>('/auth/register', input),
+    onSuccess: (user) => qc.setQueryData(queryKeys.me, user),
+  });
+}
+
+export function useLogin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { email: string; password: string }) => api.post<AuthUser>('/auth/login', input),
+    onSuccess: (user) => qc.setQueryData(queryKeys.me, user),
+  });
+}
+
+export function useLogout() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<void>('/auth/logout', {}),
+    // Wipe every cached query, not just `me` — otherwise a second account
+    // logging in on the same tab would briefly see the first account's data.
+    onSuccess: () => qc.clear(),
+  });
+}
 
 export function useSettings() {
   return useQuery({ queryKey: queryKeys.settings, queryFn: () => api.get<Settings>('/settings') });
