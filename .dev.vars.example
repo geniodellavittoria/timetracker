@@ -1,0 +1,4 @@
+# Copy to .dev.vars to password-protect your local dev server.
+# Leave unset (or delete the file) for a frictionless local run.
+# In production this is set with: wrangler secret put APP_PASSWORD
+# APP_PASSWORD=choose-a-password
