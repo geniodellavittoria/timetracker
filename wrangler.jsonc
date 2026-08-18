@@ -1,26 +1,25 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "timetracker",
-	"main": "src/worker/index.ts",
-	"compatibility_date": "2026-08-01",
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
-	"assets": {
-		"directory": "./dist/client",
-		"binding": "ASSETS",
-		"not_found_handling": "single-page-application",
-		"run_worker_first": true
-	},
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "timetracker",
-			"database_id": "8e538f76-8aa2-4db4-9d14-75e0509ee19c",
-			"migrations_dir": "migrations"
-		}
-	],
-	"observability": {
-		"enabled": true
-	}
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "timetracker",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "timetracker",
+      "database_id": "8e538f76-8aa2-4db4-9d14-75e0509ee19c",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "observability": { "enabled": true }
 }

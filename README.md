@@ -44,6 +44,9 @@ Cloudflare's free tier covers this comfortably: 100 k Worker requests/day, and D
 with 5 M row reads and 100 k row writes a day. A single person logging every working day for a
 year is a few hundred rows.
 
+**[docs/DEPLOY.md](docs/DEPLOY.md)** has the full runbook — a verification checklist for the
+live deployment, and a table of what to do when a step fails.
+
 ### Password protection
 
 The deployed URL is public, so set `APP_PASSWORD` as a Worker secret. The whole app is then
