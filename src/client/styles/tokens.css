@@ -15,20 +15,20 @@
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 
-  --bg: #fff5fd;
+  --bg: #fdf5fb;
   --surface: #ffffff;
-  --surface-2: #fbe6f9;
-  --surface-hover: #f7d6f5;
-  --border: #f0c3ec;
-  --border-strong: #dd97d8;
+  --surface-2: #f7e9f5;
+  --surface-hover: #f1dcef;
+  --border: #ebd0e8;
+  --border-strong: #d6a8d2;
 
   --text: #3a0e38;
-  --text-muted: #7a4d76;
-  --text-faint: #a883a4;
+  --text-muted: #8a6386;
+  --text-faint: #b096ac;
 
-  --accent: #ed68e7;
+  --accent: #e3b5df;
   --accent-text: #3a0e38;
-  --accent-soft: #fbe1fa;
+  --accent-soft: #faeef9;
 
   --positive: #1a7f4b;
   --positive-soft: #e2f4ea;
