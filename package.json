@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "predeploy": "node scripts/check-config.mjs",
     "deploy": "npm run build && wrangler deploy",
     "db:local": "wrangler d1 migrations apply timetracker --local",
     "db:remote": "wrangler d1 migrations apply timetracker --remote",
