@@ -47,6 +47,34 @@ export function draftToInput(draft: DayDraft): TimeEntryInput {
   };
 }
 
+/**
+ * What the draft would persist, ignoring updatedAt. Adding an empty block
+ * changes the UI but not the data, so this stays identical and no save fires.
+ */
+function inputSignatureOf(input: TimeEntryInput): string {
+  const blocks = input.blocks.map((b) => `${b.arrival}-${b.leave}-${b.breakMinutes}`).join(',');
+  return `${input.dayType}|${blocks}`;
+}
+
+/** The same signature for what the server already holds. */
+function persistedSignatureOf(entry: TimeEntry | null): string {
+  if (!entry) return 'none|';
+  return inputSignatureOf({ dayType: entry.dayType, blocks: entry.blocks, note: null });
+}
+
+/**
+ * A blank block is UI state — a row the user opened and hasn't filled in yet.
+ * Server data must never erase it, or "add block" appears to undo itself a
+ * moment later.
+ */
+function withPendingBlanks(next: DayDraft, prev: DayDraft): DayDraft {
+  if (next.dayType !== 'normal' || prev.dayType !== 'normal') return next;
+  const pending = prev.blocks.filter(isBlankBlock).length;
+  if (pending === 0) return next;
+  const filled = next.blocks.filter((b) => !isBlankBlock(b));
+  return { ...next, blocks: [...filled, ...Array.from({ length: pending }, emptyBlock)] };
+}
+
 /** Content identity of an entry, so a refetch returning the same row is a no-op. */
 function signatureOf(entry: TimeEntry | null): string {
   if (!entry) return 'none';
@@ -89,7 +117,8 @@ export function useDayForm({
     const signature = signatureOf(entry);
     if (signature === lastSeenEntry.current) return;
     lastSeenEntry.current = signature;
-    if (!dirty) setDraft(draftFrom(entry));
+    if (dirty) return;
+    setDraft((prev) => withPendingBlanks(draftFrom(entry), prev));
   }, [entry, dirty]);
 
   useEffect(() => () => {
@@ -99,7 +128,11 @@ export function useDayForm({
 
   const input = draftToInput(draft);
   const issues = isEmptyDraft(draft) ? [] : validateEntryInput(input);
-  const canSave = issues.length === 0 && !isEmptyDraft(draft);
+  // Nothing to persist means nothing to save. Without this, opening an empty
+  // block triggers a write that bumps updatedAt, and the refetch that follows
+  // resyncs the row and throws the empty block away.
+  const hasUnsavedChanges = inputSignatureOf(input) !== persistedSignatureOf(entry);
+  const canSave = issues.length === 0 && !isEmptyDraft(draft) && hasUnsavedChanges;
 
   const save = useCallback(async () => {
     if (timer.current) clearTimeout(timer.current);
