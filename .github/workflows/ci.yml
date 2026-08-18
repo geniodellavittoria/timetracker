@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to a PR makes the in-flight run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      # postinstall runs `wrangler types`, which generates worker-configuration.d.ts.
+      # That file is gitignored, so typecheck depends on this step having run.
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      # The DST and ISO-week cases in test/shared/dates.test.ts pass trivially
+      # under UTC. This run is the one that can actually catch a local-time bug.
+      - name: Test under a DST timezone
+        run: npm run test:tz
+
+      - name: Build
+        run: npm run build
