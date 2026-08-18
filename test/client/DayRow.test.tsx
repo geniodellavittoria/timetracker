@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { useState } from 'react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { DayRow } from '@client/components/DayRow.tsx';
@@ -38,6 +39,40 @@ function renderRow(date: string, s: Settings, entry: TimeEntry | null = null) {
 /** Every payload that actually reached the save callback. */
 function savedPayloads(onSave: ReturnType<typeof vi.fn>) {
   return onSave.mock.calls.map(([input]) => input);
+}
+
+/**
+ * Mirrors what the real app does after a save: the mutation invalidates the
+ * summary, the refetch lands, and the row re-renders with a NEW entry object
+ * carrying a bumped `updatedAt`. Rendering a static entry hides every bug in
+ * that resync path, which is exactly where they live.
+ */
+function renderLiveRow(date: string, s: Settings, initial: TimeEntry | null) {
+  const onSave = vi.fn();
+
+  function Harness() {
+    const [entry, setEntry] = useState<TimeEntry | null>(initial);
+    const handleSave = async (input: any) => {
+      onSave(input);
+      setEntry({
+        date,
+        updatedAt: new Date(Date.now() + 1000).toISOString(),
+        ...input,
+      } as TimeEntry);
+    };
+    return (
+      <DayRow
+        day={summarizeDay(date, entry, s, '2026-08-23')}
+        settings={s}
+        isToday={false}
+        onSave={handleSave}
+        onDelete={async () => {}}
+      />
+    );
+  }
+
+  render(<Harness />);
+  return { onSave };
 }
 
 describe('DayRow', () => {
@@ -171,5 +206,76 @@ describe('DayRow', () => {
 
     expect(screen.queryByLabelText('Kommen (Block 2)')).not.toBeInTheDocument();
     expect(screen.getByText('1 Std 00 Min')).toBeInTheDocument();
+  });
+
+  it('keeps a newly added time block instead of collapsing it after the autosave', async () => {
+    const user = userEvent.setup();
+    // A day that is already saved with one block — the situation where the
+    // autosave/refetch cycle actually runs.
+    const saved: TimeEntry = {
+      date: MON,
+      dayType: 'normal',
+      blocks: [{ arrival: '08:00', leave: '12:00', breakMinutes: 0 }],
+      note: null,
+      updatedAt: '2026-08-17T10:00:00Z',
+    };
+    renderLiveRow(MON, fullTime, saved);
+
+    await user.click(screen.getByRole('button', { name: /Weiterer Zeitblock/i }));
+    expect(screen.getByLabelText('Kommen (Block 2)')).toBeInTheDocument();
+
+    // Past the 600ms autosave debounce and the refetch that follows it.
+    await new Promise((r) => setTimeout(r, 1200));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Kommen (Block 2)')).toBeInTheDocument();
+    });
+  });
+
+  it('does not fire a save when adding an empty block changes nothing', async () => {
+    const user = userEvent.setup();
+    const saved: TimeEntry = {
+      date: MON,
+      dayType: 'normal',
+      blocks: [{ arrival: '08:00', leave: '12:00', breakMinutes: 0 }],
+      note: null,
+      updatedAt: '2026-08-17T10:00:00Z',
+    };
+    const { onSave } = renderLiveRow(MON, fullTime, saved);
+
+    await user.click(screen.getByRole('button', { name: /Weiterer Zeitblock/i }));
+    await new Promise((r) => setTimeout(r, 1200));
+
+    // An empty block carries no data, so there is nothing to persist.
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('keeps an open empty block even when a real save and refetch happen', async () => {
+    const user = userEvent.setup();
+    const saved: TimeEntry = {
+      date: MON,
+      dayType: 'normal',
+      blocks: [{ arrival: '08:00', leave: '12:00', breakMinutes: 0 }],
+      note: null,
+      updatedAt: '2026-08-17T10:00:00Z',
+    };
+    const { onSave } = renderLiveRow(MON, fullTime, saved);
+
+    // Open a second block, then edit the FIRST one — that is a genuine change,
+    // so a save really does fire and the row really does resync.
+    await user.click(screen.getByRole('button', { name: /Weiterer Zeitblock/i }));
+    await user.clear(screen.getByLabelText('Pause in Minuten (Block 1)'));
+    await user.type(screen.getByLabelText('Pause in Minuten (Block 1)'), '30');
+    await new Promise((r) => setTimeout(r, 1400));
+
+    expect(onSave).toHaveBeenCalled();
+    // The edit persisted...
+    expect(savedPayloads(onSave).at(-1).blocks).toEqual([
+      { arrival: '08:00', leave: '12:00', breakMinutes: 30 },
+    ]);
+    // ...and the empty block the user opened is still on screen.
+    await waitFor(() => {
+      expect(screen.getByLabelText('Kommen (Block 2)')).toBeInTheDocument();
+    });
   });
 });
