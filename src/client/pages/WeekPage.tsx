@@ -13,7 +13,7 @@ export function WeekPage() {
   const today = todayIsoDateLocal();
 
   if (!isValidIsoWeekKey(weekKey)) {
-    return <p className="error-banner">“{weekKey}” is not a valid week.</p>;
+    return <p className="error-banner">„{weekKey}“ ist keine gültige Woche.</p>;
   }
 
   const { from, to } = isoWeekKeyToRange(weekKey);
@@ -35,12 +35,12 @@ export function WeekPage() {
       />
 
       {(settingsQuery.error || summaryQuery.error) && (
-        <p className="error-banner">Could not load this week. Check your connection and reload.</p>
+        <p className="error-banner">Diese Woche konnte nicht geladen werden. Verbindung prüfen und neu laden.</p>
       )}
 
       <div className="card day-list">
         {!settings || !summary ? (
-          <p className="muted loading-note">Loading…</p>
+          <p className="muted loading-note">Lädt…</p>
         ) : (
           summary.days.map((day) => (
             <DayRow

@@ -48,15 +48,15 @@ export function DayRow({
       <div className="day-label">
         <strong>{WEEKDAY_LABELS[day.weekday]}</strong>
         <span className="faint">{formatDayMonth(day.date)}</span>
-        {isToday && <span className="chip chip-today">Today</span>}
+        {isToday && <span className="chip chip-today">Heute</span>}
       </div>
 
       <div className="day-inputs">
         {collapsed ? (
           <>
-            <span className="chip chip-off">Day off</span>
+            <span className="chip chip-off">Frei</span>
             <button type="button" className="ghost small" onClick={() => setExpandDayOff(true)}>
-              + Log hours anyway
+              + Trotzdem Stunden erfassen
             </button>
           </>
         ) : (
@@ -64,12 +64,12 @@ export function DayRow({
             <DayTypeSelect value={form.draft.dayType} onChange={(dayType) => form.update({ dayType })} />
             {isSpecial ? (
               <span className="muted counts-as">
-                counts as target · <DurationText minutes={day.targetMinutes} />
+                zählt als Ziel · <DurationText minutes={day.targetMinutes} />
               </span>
             ) : (
               <>
                 <TimeField
-                  label="Arrival"
+                  label="Kommen"
                   value={form.draft.arrival}
                   invalid={!!form.issueFor('arrival')}
                   onChange={(arrival) => form.update({ arrival })}
@@ -77,7 +77,7 @@ export function DayRow({
                 />
                 <span className="faint arrow">→</span>
                 <TimeField
-                  label="Leaving time"
+                  label="Gehen"
                   value={form.draft.leave}
                   invalid={!!form.issueFor('leave')}
                   onChange={(leave) => form.update({ leave })}
@@ -106,8 +106,8 @@ export function DayRow({
           <button
             type="button"
             className="ghost small danger"
-            aria-label={`Delete entry for ${day.date}`}
-            title="Delete this entry"
+            aria-label={`Eintrag für ${day.date} löschen`}
+            title="Diesen Eintrag löschen"
             onClick={() => { void onDelete(); }}
           >
             ✕
@@ -123,8 +123,8 @@ export function DayRow({
 }
 
 function SaveIndicator({ status }: { status: 'idle' | 'saving' | 'saved' | 'error' }) {
-  if (status === 'saving') return <span className="faint small" aria-live="polite">saving…</span>;
-  if (status === 'saved') return <span className="saved-tick" aria-live="polite" title="Saved">✓</span>;
-  if (status === 'error') return <span className="save-error" role="alert" title="Could not save">↻</span>;
+  if (status === 'saving') return <span className="faint small" aria-live="polite">speichert…</span>;
+  if (status === 'saved') return <span className="saved-tick" aria-live="polite" title="Gespeichert">✓</span>;
+  if (status === 'error') return <span className="save-error" role="alert" title="Konnte nicht gespeichert werden">↻</span>;
   return <span className="save-slot" aria-hidden="true" />;
 }

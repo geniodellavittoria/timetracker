@@ -16,7 +16,7 @@ export function MonthPage() {
   const today = todayIsoDateLocal();
 
   if (!isValidMonthKey(key)) {
-    return <p className="error-banner">“{key}” is not a valid month.</p>;
+    return <p className="error-banner">„{key}“ ist kein gültiger Monat.</p>;
   }
 
   const { from, to } = monthKeyToRange(key);
@@ -31,9 +31,9 @@ export function MonthPage() {
         onToday={() => navigate(`/months/${monthKey(today)}`)}
       />
 
-      {error && <p className="error-banner">Could not load this month.</p>}
+      {error && <p className="error-banner">Dieser Monat konnte nicht geladen werden.</p>}
       {!summary ? (
-        <p className="muted loading-note">Loading…</p>
+        <p className="muted loading-note">Lädt…</p>
       ) : (
         <>
           <TotalsBar totals={summary.totals} />
@@ -80,8 +80,8 @@ function MonthDayLine({ day, today }: { day: DaySummary; today: string }) {
       <span className="month-day-type muted small">
         {day.dayType && day.dayType !== 'normal'
           ? dayTypeLabel(day.dayType)
-          : isDayOff && !day.hasEntry ? 'Day off'
-          : day.isMissingWorkday ? 'not recorded' : ''}
+          : isDayOff && !day.hasEntry ? 'Frei'
+          : day.isMissingWorkday ? 'nicht erfasst' : ''}
       </span>
       <DurationText minutes={day.hasEntry ? day.workedMinutes : null} />
       <DurationText minutes={day.hasEntry ? day.balanceMinutes : null} signed colored />

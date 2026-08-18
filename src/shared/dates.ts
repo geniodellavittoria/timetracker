@@ -14,16 +14,16 @@ const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const MS_PER_DAY = 86_400_000;
 
 const MONTH_LABELS = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez',
 ] as const;
 
 export const WEEKDAY_LABELS: readonly string[] = [
-  'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
+  'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So',
 ];
 
 export const WEEKDAY_LABELS_LONG: readonly string[] = [
-  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+  'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag',
 ];
 
 /** True only for a real calendar date — '2026-02-30' is rejected. */
@@ -162,13 +162,13 @@ export function todayIsoDateLocal(now: Date = new Date()): IsoDate {
   return `${String(now.getFullYear()).padStart(4, '0')}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
 }
 
-/** '17 Aug'. */
+/** '17. Aug' — Swiss-style day with trailing period. */
 export function formatDayMonth(date: IsoDate): string {
   const d = toUtcDate(date);
-  return `${d.getUTCDate()} ${MONTH_LABELS[d.getUTCMonth()]}`;
+  return `${d.getUTCDate()}. ${MONTH_LABELS[d.getUTCMonth()]}`;
 }
 
-/** 'Mon 17 Aug'. */
+/** 'Mo 17. Aug'. */
 export function formatWeekdayDayMonth(date: IsoDate): string {
   return `${WEEKDAY_LABELS[weekdayOf(date)]} ${formatDayMonth(date)}`;
 }
@@ -178,13 +178,13 @@ export function formatMonthLabel(key: string): string {
   const { from } = monthKeyToRange(key);
   const d = toUtcDate(from);
   const long = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+    'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
   ] as const;
   return `${long[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
-/** 'Week 34 · 17–23 Aug 2026'. */
+/** 'Woche 34 · 17.–23. Aug 2026'. */
 export function formatWeekLabel(key: string): string {
   const { from, to } = isoWeekKeyToRange(key);
   const week = Number(key.slice(6));
@@ -193,9 +193,9 @@ export function formatWeekLabel(key: string): string {
   const toD = toUtcDate(to);
   const sameMonth = fromD.getUTCMonth() === toD.getUTCMonth();
   const span = sameMonth
-    ? `${fromD.getUTCDate()}–${toD.getUTCDate()} ${MONTH_LABELS[toD.getUTCMonth()]}`
+    ? `${fromD.getUTCDate()}.–${toD.getUTCDate()}. ${MONTH_LABELS[toD.getUTCMonth()]}`
     : `${formatDayMonth(from)} – ${formatDayMonth(to)}`;
-  return `Week ${week} · ${span} ${year}`;
+  return `Woche ${week} · ${span} ${year}`;
 }
 
 /**

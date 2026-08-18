@@ -15,11 +15,11 @@ export function App() {
   return (
     <>
       <header className="header">
-        <h1>⏱ Time Tracker</h1>
+        <h1>⏱ Zeiterfassung</h1>
         <nav>
-          <NavLink to={`/weeks/${isoWeekKey(today)}`}>Week</NavLink>
-          <NavLink to={`/months/${monthKey(today)}`}>Month</NavLink>
-          <NavLink to="/settings">Settings</NavLink>
+          <NavLink to={`/weeks/${isoWeekKey(today)}`}>Woche</NavLink>
+          <NavLink to={`/months/${monthKey(today)}`}>Monat</NavLink>
+          <NavLink to="/settings">Einstellungen</NavLink>
         </nav>
         <span className="spacer" />
         <CumulativeBalance />
@@ -66,9 +66,9 @@ function NotFound() {
   const today = todayIsoDateLocal();
   return (
     <section>
-      <h2>Page not found</h2>
+      <h2>Seite nicht gefunden</h2>
       <p className="muted">
-        <NavLink to={`/weeks/${isoWeekKey(today)}`}>Go to this week</NavLink>
+        <NavLink to={`/weeks/${isoWeekKey(today)}`}>Zur aktuellen Woche</NavLink>
       </p>
     </section>
   );

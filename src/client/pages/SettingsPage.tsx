@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { distributeWeeklyTarget, weeklyTargetMinutes } from '@shared/calc.ts';
-import { WEEKDAY_LABELS_LONG } from '@shared/dates.ts';
+import { WEEKDAY_LABELS, WEEKDAY_LABELS_LONG } from '@shared/dates.ts';
 import { formatDuration, hoursToMinutes, minutesToHoursValue } from '@shared/time.ts';
 import type { ByWeekday, Settings } from '@shared/types.ts';
 import { DurationText } from '../components/DurationText.tsx';
 import { useSettings, useUpdateSettings } from '../api/queries.ts';
 
 const PRESETS = [
-  { label: '5 × 8h (40h)', weeklyMinutes: 2400 },
-  { label: '5 × 8.4h (42h)', weeklyMinutes: 2520 },
-  { label: '5 × 8.5h (42.5h)', weeklyMinutes: 2550 },
+  { label: '5 × 8 Std (40 Std)', weeklyMinutes: 2400 },
+  { label: '5 × 8.4 Std (42 Std)', weeklyMinutes: 2520 },
+  { label: '5 × 8.5 Std (42.5 Std)', weeklyMinutes: 2550 },
 ];
 
 interface Draft {
@@ -36,8 +36,8 @@ export function SettingsPage() {
 
   useEffect(() => { if (settings) setDraft(draftFrom(settings)); }, [settings]);
 
-  if (error) return <p className="error-banner">Could not load settings.</p>;
-  if (!settings || !draft) return <p className="muted loading-note">Loading…</p>;
+  if (error) return <p className="error-banner">Einstellungen konnten nicht geladen werden.</p>;
+  if (!settings || !draft) return <p className="muted loading-note">Lädt…</p>;
 
   const patch = (next: Partial<Draft>) => {
     setSaved(false);
@@ -73,31 +73,31 @@ export function SettingsPage() {
 
   return (
     <section className="settings">
-      <h2>Settings</h2>
+      <h2>Einstellungen</h2>
 
       <div className="card settings-card">
-        <h3>Workload</h3>
+        <h3>Pensum</h3>
         <p className="muted small">
-          Set your full-time week and percentage, tick the days you actually work, then apply.
-          Any weekday you untick becomes a day off — it stops counting toward your target and is
-          never reported as untracked.
+          Vollzeitpensum und Prozentsatz eingeben, die tatsächlichen Arbeitstage ankreuzen und
+          anwenden. Ein abgewählter Wochentag wird zum freien Tag — er zählt nicht mehr zum Ziel
+          und wird nie als nicht erfasst gemeldet.
         </p>
 
         <div className="workload-inputs">
           <label className="labelled">
-            <span>Full-time week</span>
+            <span>Vollzeit-Woche</span>
             <span className="input-with-suffix">
               <input
                 type="number" min={0} max={168} step={0.5} inputMode="decimal"
                 value={String(draft.fullTimeWeeklyHours)}
                 onChange={(e) => patch({ fullTimeWeeklyHours: Number(e.target.value) })}
               />
-              <span className="faint">h</span>
+              <span className="faint">Std</span>
             </span>
           </label>
 
           <label className="labelled">
-            <span>Workload</span>
+            <span>Pensum</span>
             <span className="input-with-suffix">
               <input
                 type="number" min={0} max={100} step={5} inputMode="decimal"
@@ -123,7 +123,7 @@ export function SettingsPage() {
         </div>
 
         <fieldset className="works-on">
-          <legend className="faint small">I work on</legend>
+          <legend className="faint small">Ich arbeite am</legend>
           {WEEKDAY_LABELS_LONG.map((label, i) => (
             <label key={label} className="works-on-day">
               <input
@@ -135,28 +135,28 @@ export function SettingsPage() {
                   patch({ worksOn });
                 }}
               />
-              <span>{label.slice(0, 3)}</span>
+              <span>{WEEKDAY_LABELS[i]}</span>
             </label>
           ))}
         </fieldset>
 
         <div className="workload-result">
           <span>
-            Weekly target <strong><DurationText minutes={plannedWeekly} /></strong>
+            Wochenziel <strong><DurationText minutes={plannedWeekly} /></strong>
             {workingDayCount > 0 && (
-              <> across {workingDayCount} {workingDayCount === 1 ? 'day' : 'days'} →{' '}
-                <strong>{formatDuration(perDay)}</strong> per day</>
+              <> auf {workingDayCount} {workingDayCount === 1 ? 'Tag' : 'Tage'} verteilt →{' '}
+                <strong>{formatDuration(perDay)}</strong> pro Tag</>
             )}
           </span>
-          <button type="button" onClick={applyWorkload}>Apply to weekdays</button>
+          <button type="button" onClick={applyWorkload}>Auf Wochentage anwenden</button>
         </div>
       </div>
 
       <div className="card settings-card">
-        <h3>Hours per weekday</h3>
+        <h3>Stunden pro Wochentag</h3>
         <p className="muted small">
-          What each day actually counts for. Editing a value by hand is fine — it just means the
-          workload panel above no longer matches.
+          Was jeder Tag effektiv zählt. Ein Wert kann von Hand angepasst werden — das Pensum-Feld
+          oben stimmt dann einfach nicht mehr überein.
         </p>
 
         <div className="weekday-grid">
@@ -169,18 +169,18 @@ export function SettingsPage() {
                   <input
                     type="number" min={0} max={24} step={0.25} inputMode="decimal"
                     value={String(minutesToHoursValue(minutes))}
-                    aria-label={`${label} target hours`}
+                    aria-label={`${label} Zielstunden`}
                     onChange={(e) => {
                       const targets = [...draft.targets];
                       targets[i] = hoursToMinutes(Number(e.target.value) || 0);
                       patch({ targets });
                     }}
                   />
-                  <span className="faint">h</span>
+                  <span className="faint">Std</span>
                 </span>
                 <span className="weekday-note">
                   {minutes === 0
-                    ? <span className="chip chip-off">Day off</span>
+                    ? <span className="chip chip-off">Frei</span>
                     : <span className="faint num">{formatDuration(minutes)}</span>}
                 </span>
               </label>
@@ -189,19 +189,19 @@ export function SettingsPage() {
         </div>
 
         <div className="weekly-total">
-          <span>Weekly total <strong><DurationText minutes={currentWeekly} /></strong></span>
-          {customised && <span className="chip chip-warning">customised</span>}
+          <span>Wochentotal <strong><DurationText minutes={currentWeekly} /></strong></span>
+          {customised && <span className="chip chip-warning">angepasst</span>}
         </div>
       </div>
 
       <div className="settings-actions">
         <button type="button" className="primary" onClick={save} disabled={update.isPending}>
-          {update.isPending ? 'Saving…' : 'Save settings'}
+          {update.isPending ? 'Speichert…' : 'Einstellungen speichern'}
         </button>
-        {saved && <span className="saved-tick">✓ Saved</span>}
-        {update.error && <span className="save-error">Could not save.</span>}
+        {saved && <span className="saved-tick">✓ Gespeichert</span>}
+        {update.error && <span className="save-error">Konnte nicht gespeichert werden.</span>}
         <p className="faint small">
-          Targets are not versioned: changing them recalculates every past balance too.
+          Ziele werden nicht versioniert: Eine Änderung berechnet auch alle vergangenen Salden neu.
         </p>
       </div>
     </section>

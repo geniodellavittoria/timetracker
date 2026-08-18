@@ -2,27 +2,27 @@ import { formatDayMonth } from '@shared/dates.ts';
 import type { Totals } from '@shared/types.ts';
 import { DurationText } from './DurationText.tsx';
 
-export function TotalsBar({ totals, scheduledLabel = 'Target' }: { totals: Totals; scheduledLabel?: string }) {
+export function TotalsBar({ totals, scheduledLabel = 'Ziel' }: { totals: Totals; scheduledLabel?: string }) {
   return (
     <div className="totals-bar">
       <div className="totals-figures">
-        <Figure label="Worked"><DurationText minutes={totals.workedMinutes} /></Figure>
+        <Figure label="Gearbeitet"><DurationText minutes={totals.workedMinutes} /></Figure>
         <Figure label={scheduledLabel}><DurationText minutes={totals.targetMinutesScheduled} /></Figure>
-        <Figure label="Balance">
+        <Figure label="Saldo">
           <DurationText minutes={totals.balanceMinutes} signed colored />
         </Figure>
         <span className="faint small">
-          over {totals.trackedDayCount} tracked {totals.trackedDayCount === 1 ? 'day' : 'days'}
+          über {totals.trackedDayCount} erfasste {totals.trackedDayCount === 1 ? 'Tag' : 'Tage'}
         </span>
       </div>
 
       {totals.missingWorkdays.length > 0 && (
         <span
           className="chip chip-warning"
-          title={`Not recorded: ${totals.missingWorkdays.map(formatDayMonth).join(', ')}`}
+          title={`Nicht erfasst: ${totals.missingWorkdays.map(formatDayMonth).join(', ')}`}
         >
-          ⚠ {totals.missingWorkdays.length} untracked{' '}
-          {totals.missingWorkdays.length === 1 ? 'workday' : 'workdays'}
+          ⚠ {totals.missingWorkdays.length} nicht erfasste
+          {totals.missingWorkdays.length === 1 ? 'r Arbeitstag' : ' Arbeitstage'}
         </span>
       )}
     </div>

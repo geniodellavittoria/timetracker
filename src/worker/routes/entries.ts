@@ -21,18 +21,18 @@ entriesRoutes.get('/:date', async (c) => {
   const date = c.req.param('date');
   if (!isValidIsoDate(date)) {
     return validationError(c, [
-      { path: 'date', code: 'invalid_date', message: 'Not a valid YYYY-MM-DD date.' },
+      { path: 'date', code: 'invalid_date', message: 'Kein gültiges Datum (JJJJ-MM-TT).' },
     ]);
   }
   const entry = await getEntry(c.env.DB, date);
-  return entry ? c.json(entry) : notFound(c, `No entry for ${date}.`);
+  return entry ? c.json(entry) : notFound(c, `Kein Eintrag für ${date}.`);
 });
 
 entriesRoutes.put('/:date', async (c) => {
   const date = c.req.param('date');
   if (!isValidIsoDate(date)) {
     return validationError(c, [
-      { path: 'date', code: 'invalid_date', message: 'Not a valid YYYY-MM-DD date.' },
+      { path: 'date', code: 'invalid_date', message: 'Kein gültiges Datum (JJJJ-MM-TT).' },
     ]);
   }
 
@@ -53,9 +53,9 @@ entriesRoutes.delete('/:date', async (c) => {
   const date = c.req.param('date');
   if (!isValidIsoDate(date)) {
     return validationError(c, [
-      { path: 'date', code: 'invalid_date', message: 'Not a valid YYYY-MM-DD date.' },
+      { path: 'date', code: 'invalid_date', message: 'Kein gültiges Datum (JJJJ-MM-TT).' },
     ]);
   }
   const deleted = await deleteEntry(c.env.DB, date);
-  return deleted ? c.body(null, 204) : notFound(c, `No entry for ${date}.`);
+  return deleted ? c.body(null, 204) : notFound(c, `Kein Eintrag für ${date}.`);
 });

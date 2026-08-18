@@ -1,106 +1,111 @@
-# ⏱ Time Tracker
+# ⏱ Zeiterfassung
 
-A personal work-hours tracker. Enter when you arrived, how many minutes of break you took,
-and when you left — it works out your hours, sums them per day, and keeps a running
-overtime balance against a target you configure per weekday.
+Eine persönliche Arbeitszeiterfassung. Kommen, Pausenminuten und Gehen eintragen — daraus werden
+die Arbeitsstunden berechnet, pro Tag summiert und als laufender Überstundensaldo gegen ein pro
+Wochentag konfigurierbares Ziel geführt.
 
-Single user, no accounts. Runs free on Cloudflare Workers with a D1 database.
+Einzelbenutzer, keine Konten. Läuft kostenlos auf Cloudflare Workers mit einer D1-Datenbank.
 
-## What it does
+## Was die App macht
 
-- **One row per day**: arrival, break minutes, leaving time → worked hours, computed as you type.
-- **Per-weekday targets**, with a workload panel so you can say "42 h week, 80 %, Friday off"
-  and let it do the division.
-- **Days off anywhere in the week.** A target of 0 *is* a day off — weekends aren't special, so a
-  mid-week day off works exactly the same way. Hours you do work on a day off count as pure overtime.
-- **Vacation / sick / holiday** day types, which count as that weekday's target so they neither
-  earn nor cost overtime.
-- **Week and month views** with per-week buckets, and a cumulative balance in the header.
-- **Untracked days are flagged, not punished.** A workday you never logged doesn't drag your
-  balance down; it shows up as "⚠ N untracked workdays" instead.
+- **Eine Zeile pro Tag**: Kommen, Pausenminuten, Gehen → Arbeitsstunden, live beim Tippen berechnet.
+- **Ziele pro Wochentag**, mit einem Pensum-Panel — "42-Std-Woche, 80 %, Freitag frei" eingeben
+  und die Verteilung überlassen.
+- **Freie Tage überall in der Woche.** Ein Ziel von 0 *ist* ein freier Tag — Wochenenden sind
+  nicht speziell, ein freier Tag mitten in der Woche funktioniert genau gleich. Stunden, die an
+  einem freien Tag trotzdem gearbeitet werden, zählen als reine Überzeit.
+- **Ferien-, Krankheits- und Feiertage**, die als das Ziel des jeweiligen Wochentags zählen und
+  so weder Überzeit erzeugen noch kosten.
+- **Wochen- und Monatsansicht** mit Wochen-Buckets und einem kumulierten Saldo im Header.
+- **Nicht erfasste Tage werden markiert, nicht bestraft.** Ein nie erfasster Arbeitstag drückt den
+  Saldo nicht nach unten; er erscheint stattdessen als "⚠ N nicht erfasste Arbeitstage".
 
-## Getting started
+## Erste Schritte
 
 ```bash
 npm install
 npx wrangler login
-npx wrangler d1 create timetracker     # paste the printed database_id into wrangler.jsonc
-npm run db:local                       # create the local dev database
+npx wrangler d1 create timetracker     # die ausgegebene database_id in wrangler.jsonc einfügen
+npm run db:local                       # lokale Entwicklungsdatenbank anlegen
 npm run dev                            # http://localhost:5173
 ```
 
-`npm run dev` runs the Worker in Cloudflare's real runtime *and* the React client with hot
-reload, on one origin — so local behaviour matches production.
+`npm run dev` startet den Worker in Cloudflares echter Runtime *und* den React-Client mit Hot
+Reload, auf einem Origin — so entspricht das lokale Verhalten der Produktion.
 
-### Deploying
+### Deployen
 
 ```bash
-npm run db:remote                      # apply migrations to the production database
-npx wrangler secret put APP_PASSWORD   # set a password (see below)
+npm run db:remote                      # Migrationen auf die Produktionsdatenbank anwenden
+npx wrangler secret put APP_PASSWORD   # Passwort setzen (siehe unten)
 npm run deploy                         # → https://timetracker.<your-subdomain>.workers.dev
 ```
 
-Cloudflare's free tier covers this comfortably: 100 k Worker requests/day, and D1 gives 5 GB
-with 5 M row reads and 100 k row writes a day. A single person logging every working day for a
-year is a few hundred rows.
+Cloudflares Free Tier reicht dafür bequem: 100k Worker-Requests/Tag, und D1 gibt 5 GB mit
+5 Mio. Row Reads und 100k Row Writes pro Tag. Eine einzelne Person, die jeden Arbeitstag im
+Jahr erfasst, erzeugt ein paar hundert Zeilen.
 
-**[docs/DEPLOY.md](docs/DEPLOY.md)** has the full runbook — a verification checklist for the
-live deployment, and a table of what to do when a step fails.
+**[docs/DEPLOY.md](docs/DEPLOY.md)** enthält das vollständige Runbook — eine Checkliste zur
+Verifikation des laufenden Deployments und eine Tabelle, was bei einem fehlgeschlagenen Schritt
+zu tun ist.
 
-### Password protection
+### Passwortschutz
 
-The deployed URL is public, so set `APP_PASSWORD` as a Worker secret. The whole app is then
-behind HTTP Basic auth — the UI as well as the API — with username `me`.
+Die deployte URL ist öffentlich, daher `APP_PASSWORD` als Worker-Secret setzen. Die ganze App
+liegt dann hinter HTTP Basic Auth — UI wie API — mit dem Benutzernamen `me`.
 
-Locally the gate is off unless you create a `.dev.vars` file (see `.dev.vars.example`), so
-development stays frictionless.
+Lokal ist die Sperre aus, ausser eine `.dev.vars`-Datei wird angelegt (siehe
+`.dev.vars.example`), damit die Entwicklung reibungslos bleibt.
 
 ## Scripts
 
-| Command | What it does |
+| Befehl | Was er macht |
 |---|---|
-| `npm run dev` | Worker + client with hot reload on http://localhost:5173 |
-| `npm test` | Full suite: calculations, API, and UI components |
-| `npm run test:tz` | The same suite under `TZ=Europe/Zurich` — see below |
+| `npm run dev` | Worker + Client mit Hot Reload auf http://localhost:5173 |
+| `npm test` | Volle Suite: Berechnungen, API und UI-Komponenten |
+| `npm run test:tz` | Dieselbe Suite unter `TZ=Europe/Zurich` — siehe unten |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm run build` | Production build into `dist/` |
-| `npm run deploy` | Build and deploy to Cloudflare |
-| `npm run db:local` / `db:remote` | Apply migrations |
+| `npm run build` | Produktions-Build nach `dist/` |
+| `npm run deploy` | Build und Deploy auf Cloudflare |
+| `npm run db:local` / `db:remote` | Migrationen anwenden |
 
-## How it's put together
+## Wie es aufgebaut ist
 
 ```
-src/shared/   Pure calculation code — imported by BOTH the client and the Worker
-src/worker/   Hono API on the Workers runtime, D1 for storage
+src/shared/   Reiner Berechnungscode — von Client UND Worker importiert
+src/worker/   Hono-API auf der Workers-Runtime, D1 als Storage
 src/client/   React 19 + Vite
-migrations/   D1 schema, applied by wrangler
+migrations/   D1-Schema, von wrangler angewendet
 ```
 
-`src/shared/` is the important part. The same `workedMinutesFor` and `buildRangeSummary` run in
-the browser for the live preview and in the Worker as the authority, so the number that appears
-while you type is by construction the number that gets stored.
+`src/shared/` ist der wichtige Teil. Dieselben Funktionen `workedMinutesFor` und
+`buildRangeSummary` laufen im Browser für die Live-Vorschau und im Worker als Autorität — die
+Zahl, die beim Tippen erscheint, ist dadurch per Konstruktion dieselbe, die gespeichert wird.
 
-Three layers enforce the same rules — the shared validators on the client, the same validators
-in the Worker, and `CHECK` constraints in SQL. That's deliberate: the database constraint is the
-one that still holds if the other two have a bug.
+Drei Schichten setzen dieselben Regeln durch — die gemeinsamen Validatoren im Client, dieselben
+Validatoren im Worker, und `CHECK`-Constraints in SQL. Das ist Absicht: Der Datenbank-Constraint
+ist die Schicht, die auch bei einem Bug in den anderen beiden noch greift.
 
-### Two things to know
+### Zwei Dinge, die man wissen sollte
 
-**Targets aren't versioned.** Changing a weekday target recalculates every past balance, not just
-future ones. Fine for personal use; worth knowing before you edit them mid-year.
+**Ziele werden nicht versioniert.** Eine Änderung eines Wochentagziels berechnet jeden
+vergangenen Saldo neu, nicht nur zukünftige. Für den persönlichen Gebrauch unproblematisch —
+aber gut zu wissen, bevor man Ziele mitten im Jahr ändert.
 
-**Overnight shifts aren't supported.** A leaving time at or before the arrival time is rejected,
-in the UI, the API and the database. That also rules out `00:00` as a leaving time.
+**Nachtschichten werden nicht unterstützt.** Eine Gehen-Zeit, die vor oder gleich der
+Kommen-Zeit liegt, wird abgelehnt — in der UI, der API und der Datenbank. Das schliesst auch
+`00:00` als Gehen-Zeit aus.
 
-### Time and timezones
+### Zeit und Zeitzonen
 
-Times are stored as integer minutes since midnight, and all arithmetic stays in whole minutes —
-decimals only ever appear in formatters, so totals can't drift. Every date helper uses UTC
-internally; the browser sends its own local `today` to the summary endpoint, because Workers run
-in UTC and would otherwise call a 01:00 entry in Zurich "tomorrow".
+Zeiten werden als ganzzahlige Minuten seit Mitternacht gespeichert, und die gesamte Arithmetik
+bleibt in ganzen Minuten — Dezimalstellen tauchen nur in Formatierern auf, damit Summen nicht
+driften können. Jeder Datums-Helper arbeitet intern mit UTC; der Browser schickt sein eigenes
+lokales `today` an den Summary-Endpoint, weil Workers in UTC laufen und sonst einen Eintrag um
+01:00 Uhr in Zürich als "morgen" einstufen würden.
 
-`npm run test:tz` exists for this reason. The DST test in `test/shared/dates.test.ts` passes
-trivially under UTC and only has teeth in a timezone with daylight saving.
+`npm run test:tz` existiert aus diesem Grund. Der DST-Test in `test/shared/dates.test.ts` läuft
+unter UTC trivial durch und zeigt seine Wirkung erst in einer Zeitzone mit Sommerzeit.
 
 ## Backups
 

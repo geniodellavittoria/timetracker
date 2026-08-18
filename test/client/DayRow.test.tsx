@@ -45,38 +45,38 @@ describe('DayRow', () => {
     const user = userEvent.setup();
     renderRow(MON, fullTime);
 
-    await user.type(screen.getByLabelText('Arrival'), '08:00');
-    await user.type(screen.getByLabelText('Leaving time'), '17:15');
-    await user.clear(screen.getByLabelText('Break in minutes'));
-    await user.type(screen.getByLabelText('Break in minutes'), '45');
+    await user.type(screen.getByLabelText('Kommen'), '08:00');
+    await user.type(screen.getByLabelText('Gehen'), '17:15');
+    await user.clear(screen.getByLabelText('Pause in Minuten'));
+    await user.type(screen.getByLabelText('Pause in Minuten'), '45');
 
     // 17:15 − 08:00 − 45m, computed by the shared module with no network involved.
-    expect(screen.getByText('8h 30m')).toBeInTheDocument();
-    expect(screen.getByText('+0h 06m')).toBeInTheDocument();
+    expect(screen.getByText('8 Std 30 Min')).toBeInTheDocument();
+    expect(screen.getByText('+0 Std 06 Min')).toBeInTheDocument();
   });
 
   it('replaces the time inputs when the day becomes vacation', async () => {
     const user = userEvent.setup();
     renderRow(MON, fullTime);
 
-    expect(screen.getByLabelText('Arrival')).toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText('Day type'), 'vacation');
+    expect(screen.getByLabelText('Kommen')).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Tagestyp'), 'vacation');
 
-    expect(screen.queryByLabelText('Arrival')).not.toBeInTheDocument();
-    expect(screen.getByText(/counts as target/)).toBeInTheDocument();
+    expect(screen.queryByLabelText('Kommen')).not.toBeInTheDocument();
+    expect(screen.getByText(/zählt als Ziel/)).toBeInTheDocument();
   });
 
   it('shows an error and refuses to save when breaks exceed the span', async () => {
     const user = userEvent.setup();
     const { onSave } = renderRow(MON, fullTime);
 
-    await user.type(screen.getByLabelText('Arrival'), '09:00');
-    await user.type(screen.getByLabelText('Leaving time'), '17:00');
-    await user.clear(screen.getByLabelText('Break in minutes'));
-    await user.type(screen.getByLabelText('Break in minutes'), '600');
+    await user.type(screen.getByLabelText('Kommen'), '09:00');
+    await user.type(screen.getByLabelText('Gehen'), '17:00');
+    await user.clear(screen.getByLabelText('Pause in Minuten'));
+    await user.type(screen.getByLabelText('Pause in Minuten'), '600');
     await user.tab();
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/breaks are longer/i);
+    expect(screen.getByRole('alert')).toHaveTextContent(/pause ist länger/i);
     // A valid intermediate state may autosave; the invalid one never may.
     expect(savedPayloads(onSave)).not.toContainEqual(
       expect.objectContaining({ breakMinutes: 600 }),
@@ -87,11 +87,11 @@ describe('DayRow', () => {
     const user = userEvent.setup();
     const { onSave } = renderRow(MON, fullTime);
 
-    await user.type(screen.getByLabelText('Arrival'), '22:00');
-    await user.type(screen.getByLabelText('Leaving time'), '06:00');
+    await user.type(screen.getByLabelText('Kommen'), '22:00');
+    await user.type(screen.getByLabelText('Gehen'), '06:00');
     await user.tab();
 
-    expect(screen.getByRole('alert')).toHaveTextContent(/overnight/i);
+    expect(screen.getByRole('alert')).toHaveTextContent(/nachtschicht/i);
     expect(savedPayloads(onSave)).not.toContainEqual(
       expect.objectContaining({ leave: '06:00' }),
     );
@@ -101,22 +101,22 @@ describe('DayRow', () => {
     const user = userEvent.setup();
     renderRow(FRI, partTime);
 
-    expect(screen.getByText('Day off')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Arrival')).not.toBeInTheDocument();
+    expect(screen.getByText('Frei')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Kommen')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /log hours anyway/i }));
-    expect(screen.getByLabelText('Arrival')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /trotzdem stunden erfassen/i }));
+    expect(screen.getByLabelText('Kommen')).toBeInTheDocument();
   });
 
   it('books hours on a day off as pure overtime', async () => {
     const user = userEvent.setup();
     renderRow(FRI, partTime);
 
-    await user.click(screen.getByRole('button', { name: /log hours anyway/i }));
-    await user.type(screen.getByLabelText('Arrival'), '09:00');
-    await user.type(screen.getByLabelText('Leaving time'), '13:00');
+    await user.click(screen.getByRole('button', { name: /trotzdem stunden erfassen/i }));
+    await user.type(screen.getByLabelText('Kommen'), '09:00');
+    await user.type(screen.getByLabelText('Gehen'), '13:00');
 
-    expect(screen.getByText('4h 00m')).toBeInTheDocument();
-    expect(screen.getByText('+4h 00m')).toBeInTheDocument();
+    expect(screen.getByText('4 Std 00 Min')).toBeInTheDocument();
+    expect(screen.getByText('+4 Std 00 Min')).toBeInTheDocument();
   });
 });

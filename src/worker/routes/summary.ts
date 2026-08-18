@@ -18,7 +18,7 @@ summaryRoutes.get('/', async (c) => {
   const groupBy = groupBySchema.safeParse(c.req.query('groupBy') ?? 'none');
   if (!groupBy.success) {
     return validationError(c, [
-      { path: 'groupBy', code: 'invalid_range', message: 'groupBy must be week, month or none.' },
+      { path: 'groupBy', code: 'invalid_range', message: '`groupBy` muss week, month oder none sein.' },
     ]);
   }
 
@@ -31,7 +31,7 @@ summaryRoutes.get('/', async (c) => {
   const todayParam = c.req.query('today');
   if (todayParam !== undefined && !isValidIsoDate(todayParam)) {
     return validationError(c, [
-      { path: 'today', code: 'invalid_date', message: '`today` must be a YYYY-MM-DD date.' },
+      { path: 'today', code: 'invalid_date', message: '`today` muss ein gültiges Datum (JJJJ-MM-TT) sein.' },
     ]);
   }
   const today = todayParam ?? new Date().toISOString().slice(0, 10);

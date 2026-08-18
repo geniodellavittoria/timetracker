@@ -34,15 +34,15 @@ describe('formatTimeOfDay', () => {
 
 describe('formatDuration', () => {
   it('formats plain durations', () => {
-    expect(formatDuration(510)).toBe('8h 30m');
-    expect(formatDuration(0)).toBe('0h 00m');
-    expect(formatDuration(-75)).toBe('−1h 15m');
+    expect(formatDuration(510)).toBe('8 Std 30 Min');
+    expect(formatDuration(0)).toBe('0 Std 00 Min');
+    expect(formatDuration(-75)).toBe('−1 Std 15 Min');
   });
 
   it('formats signed durations with an explicit zero', () => {
-    expect(formatDuration(0, { signed: true })).toBe('±0h 00m');
-    expect(formatDuration(75, { signed: true })).toBe('+1h 15m');
-    expect(formatDuration(-75, { signed: true })).toBe('−1h 15m');
+    expect(formatDuration(0, { signed: true })).toBe('±0 Std 00 Min');
+    expect(formatDuration(75, { signed: true })).toBe('+1 Std 15 Min');
+    expect(formatDuration(-75, { signed: true })).toBe('−1 Std 15 Min');
   });
 });
 

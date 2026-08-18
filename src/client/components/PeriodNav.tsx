@@ -8,11 +8,11 @@ export function PeriodNav({
 }) {
   return (
     <div className="period-nav">
-      <button type="button" className="ghost" onClick={onPrev} aria-label="Previous period">‹</button>
+      <button type="button" className="ghost" onClick={onPrev} aria-label="Vorherige Periode">‹</button>
       <h2>{label}</h2>
-      <button type="button" className="ghost" onClick={onNext} aria-label="Next period">›</button>
+      <button type="button" className="ghost" onClick={onNext} aria-label="Nächste Periode">›</button>
       <span className="spacer" />
-      <button type="button" onClick={onToday}>Today</button>
+      <button type="button" onClick={onToday}>Heute</button>
     </div>
   );
 }

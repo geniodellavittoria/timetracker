@@ -2,10 +2,10 @@ import { DAY_TYPES } from '@shared/types.ts';
 import type { DayType } from '@shared/types.ts';
 
 const LABELS: Record<DayType, string> = {
-  normal: 'Work',
-  vacation: 'Vacation',
-  sick: 'Sick',
-  holiday: 'Holiday',
+  normal: 'Arbeit',
+  vacation: 'Ferien',
+  sick: 'Krank',
+  holiday: 'Feiertag',
 };
 
 export function DayTypeSelect({
@@ -19,7 +19,7 @@ export function DayTypeSelect({
     <select
       className="day-type"
       value={value}
-      aria-label="Day type"
+      aria-label="Tagestyp"
       disabled={disabled}
       onChange={(e) => onChange(e.target.value as DayType)}
     >

@@ -25,11 +25,11 @@ export interface ValidationIssue {
   message: string;
 }
 
-export const isoDateSchema = z.string().refine(isValidIsoDate, 'Must be a valid YYYY-MM-DD date.');
+export const isoDateSchema = z.string().refine(isValidIsoDate, 'Muss ein gültiges Datum im Format JJJJ-MM-TT sein.');
 
 export const timeOfDaySchema = z
   .string()
-  .refine((v) => parseTimeOfDay(v) !== null, 'Must be a valid HH:MM time.');
+  .refine((v) => parseTimeOfDay(v) !== null, 'Muss eine gültige Uhrzeit im Format HH:MM sein.');
 
 export const dayTypeSchema = z.enum(DAY_TYPES);
 
@@ -59,7 +59,7 @@ export function validateEntryInput(input: TimeEntryInput): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
   if (!DAY_TYPES.includes(input.dayType)) {
-    return [{ path: 'dayType', code: 'invalid_date', message: 'Unknown day type.' }];
+    return [{ path: 'dayType', code: 'invalid_date', message: 'Unbekannter Tagestyp.' }];
   }
 
   if (input.dayType !== 'normal') {
@@ -67,7 +67,7 @@ export function validateEntryInput(input: TimeEntryInput): ValidationIssue[] {
       issues.push({
         path: 'dayType',
         code: 'times_not_allowed_for_special_day',
-        message: 'Vacation, sick and holiday days must not carry times.',
+        message: 'Ferien-, Krankheits- und Feiertage dürfen keine Zeiten enthalten.',
       });
     }
     return issues;
@@ -80,15 +80,15 @@ export function validateEntryInput(input: TimeEntryInput): ValidationIssue[] {
     issues.push({
       path: 'arrival',
       code: 'times_required_for_normal_day',
-      message: 'Enter both an arrival and a leaving time.',
+      message: 'Bitte Kommen und Gehen erfassen.',
     });
     return issues;
   }
   if (arrival === null) {
-    issues.push({ path: 'arrival', code: 'invalid_time', message: 'Arrival is not a valid time.' });
+    issues.push({ path: 'arrival', code: 'invalid_time', message: 'Kommen ist keine gültige Uhrzeit.' });
   }
   if (leave === null) {
-    issues.push({ path: 'leave', code: 'invalid_time', message: 'Leaving time is not valid.' });
+    issues.push({ path: 'leave', code: 'invalid_time', message: 'Gehen ist keine gültige Uhrzeit.' });
   }
   if (arrival === null || leave === null) return issues;
 
@@ -96,19 +96,19 @@ export function validateEntryInput(input: TimeEntryInput): ValidationIssue[] {
     issues.push({
       path: 'leave',
       code: 'leave_not_after_arrival',
-      message: 'Leaving time must be after arrival — overnight shifts are not supported.',
+      message: 'Gehen muss nach Kommen liegen — Nachtschichten werden nicht unterstützt.',
     });
     return issues;
   }
 
   const breakMinutes = input.breakMinutes ?? 0;
   if (breakMinutes < 0) {
-    issues.push({ path: 'breakMinutes', code: 'break_negative', message: 'Breaks cannot be negative.' });
+    issues.push({ path: 'breakMinutes', code: 'break_negative', message: 'Die Pause darf nicht negativ sein.' });
   } else if (breakMinutes > leave - arrival) {
     issues.push({
       path: 'breakMinutes',
       code: 'break_exceeds_span',
-      message: 'Breaks are longer than the time between arrival and leaving.',
+      message: 'Die Pause ist länger als die Zeit zwischen Kommen und Gehen.',
     });
   }
 
@@ -117,13 +117,13 @@ export function validateEntryInput(input: TimeEntryInput): ValidationIssue[] {
 
 export function validateRange(from: unknown, to: unknown): ValidationIssue[] {
   if (!isValidIsoDate(from)) {
-    return [{ path: 'from', code: 'invalid_date', message: '`from` must be a YYYY-MM-DD date.' }];
+    return [{ path: 'from', code: 'invalid_date', message: '`from` muss ein gültiges Datum (JJJJ-MM-TT) sein.' }];
   }
   if (!isValidIsoDate(to)) {
-    return [{ path: 'to', code: 'invalid_date', message: '`to` must be a YYYY-MM-DD date.' }];
+    return [{ path: 'to', code: 'invalid_date', message: '`to` muss ein gültiges Datum (JJJJ-MM-TT) sein.' }];
   }
   if (from > to) {
-    return [{ path: 'to', code: 'invalid_range', message: '`to` must not be before `from`.' }];
+    return [{ path: 'to', code: 'invalid_range', message: '`to` darf nicht vor `from` liegen.' }];
   }
   const days = Math.round(
     (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000,
@@ -132,7 +132,7 @@ export function validateRange(from: unknown, to: unknown): ValidationIssue[] {
     return [{
       path: 'to',
       code: 'range_too_large',
-      message: `Range must not exceed ${MAX_RANGE_DAYS} days.`,
+      message: `Zeitraum darf ${MAX_RANGE_DAYS} Tage nicht überschreiten.`,
     }];
   }
   return [];

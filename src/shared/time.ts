@@ -29,15 +29,15 @@ export function formatTimeOfDay(minutes: number): TimeOfDay {
 }
 
 /**
- * 510 -> '8h 30m'. With `signed`, 0 -> '±0h 00m' and -75 -> '−1h 15m'
+ * 510 -> '8 Std 30 Min'. With `signed`, 0 -> '±0 Std 00 Min' and -75 -> '−1 Std 15 Min'
  * (U+2212 minus, which aligns with digits far better than a hyphen).
  */
 export function formatDuration(minutes: number, opts: { signed?: boolean } = {}): string {
   const total = Math.trunc(minutes);
   const abs = Math.abs(total);
-  const body = `${Math.floor(abs / 60)}h ${pad2(abs % 60)}m`;
+  const body = `${Math.floor(abs / 60)} Std ${pad2(abs % 60)} Min`;
   if (!opts.signed) return total < 0 ? `−${body}` : body;
-  if (total === 0) return `±0h 00m`;
+  if (total === 0) return `±0 Std 00 Min`;
   return `${total > 0 ? '+' : '−'}${body}`;
 }
 

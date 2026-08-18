@@ -29,7 +29,7 @@ app.onError((err, c) => {
   // untouched — swallowing it would turn every login prompt into a 500.
   if (err instanceof HTTPException) return err.getResponse();
   console.error('Unhandled error', err);
-  return c.json(errorBody('internal_error', 'Something went wrong.'), 500);
+  return c.json(errorBody('internal_error', 'Etwas ist schiefgelaufen.'), 500);
 });
 
 // Everything else is the React app, with SPA fallback handled by the assets binding.

@@ -14,11 +14,11 @@ export function errorBody(code: ErrorCode, message: string, issues?: ValidationI
 /** 400 carrying the shared validation issues, so the form can map them back onto fields. */
 export function validationError(c: Context, issues: ValidationIssue[]) {
   return c.json(
-    errorBody('validation_error', issues[0]?.message ?? 'The request is not valid.', issues),
+    errorBody('validation_error', issues[0]?.message ?? 'Die Anfrage ist ungültig.', issues),
     400,
   );
 }
 
-export function notFound(c: Context, message = 'Not found.') {
+export function notFound(c: Context, message = 'Nicht gefunden.') {
   return c.json(errorBody('not_found', message), 404);
 }
