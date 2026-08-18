@@ -16,8 +16,7 @@
     {
       "binding": "DB",
       "database_name": "timetracker",
-      // Replace with the id printed by: wrangler d1 create timetracker
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "8e538f76-8aa2-4db4-9d14-75e0509ee19c",
       "migrations_dir": "migrations"
     }
   ],
