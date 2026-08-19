@@ -118,6 +118,10 @@ input[type='time'], input[type='number'] { font-variant-numeric: tabular-nums; }
 
 .spacer { flex: 1; }
 
+.theme-toggle { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.theme-toggle button { border-color: transparent; padding: var(--space-1) var(--space-2); line-height: 1; }
+.theme-toggle button.is-active { background: var(--surface-2); border-color: var(--border); }
+
 .error-banner {
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);

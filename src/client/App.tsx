@@ -4,6 +4,7 @@ import {
   todayIsoDateLocal,
 } from '@shared/dates.ts';
 import { BalanceBadge } from './components/BalanceBadge.tsx';
+import { useTheme } from './hooks/useTheme.ts';
 import { LoginPage } from './pages/LoginPage.tsx';
 import { MonthPage } from './pages/MonthPage.tsx';
 import { RegisterPage } from './pages/RegisterPage.tsx';
@@ -46,6 +47,7 @@ function AuthenticatedApp() {
         <span className="spacer" />
         <CumulativeBalance />
         {user && <span className="faint small">{user.email}</span>}
+        <ThemeToggle />
         <button type="button" className="ghost small" onClick={() => logout.mutate()} disabled={logout.isPending}>
           Abmelden
         </button>
@@ -86,6 +88,32 @@ function CumulativeBalance() {
 
   const { data, isLoading } = useSummary({ ...range, groupBy, today });
   return <BalanceBadge minutes={data?.cumulativeBalanceMinutes ?? null} loading={isLoading} />;
+}
+
+function ThemeToggle() {
+  const [theme, setTheme] = useTheme();
+  return (
+    <div className="theme-toggle" role="group" aria-label="Farbschema">
+      <button
+        type="button"
+        className={theme === 'light' ? 'ghost small is-active' : 'ghost small'}
+        aria-pressed={theme === 'light'}
+        title="Helles Farbschema"
+        onClick={() => setTheme('light')}
+      >
+        ☀️<span className="visually-hidden">Hell</span>
+      </button>
+      <button
+        type="button"
+        className={theme === 'dark' ? 'ghost small is-active' : 'ghost small'}
+        aria-pressed={theme === 'dark'}
+        title="Dunkles Farbschema"
+        onClick={() => setTheme('dark')}
+      >
+        🌙<span className="visually-hidden">Dunkel</span>
+      </button>
+    </div>
+  );
 }
 
 function NotFound() {
