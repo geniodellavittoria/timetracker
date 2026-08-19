@@ -54,8 +54,8 @@ export interface Settings {
    * recompute; never read by any calculation.
    */
   fullTimeWeeklyMinutes: number;
-  /** Tenths of a percent, so 80.0% is stored as 800. Never a float. */
-  workloadPercentX10: number;
+  /** Hundredths of a percent, so 80.25% is stored as 8025. Never a float. */
+  workloadPercentX100: number;
   updatedAt: string;
 }
 

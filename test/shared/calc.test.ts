@@ -19,7 +19,7 @@ function settings(targets: ByWeekday<number>, extra: Partial<Settings> = {}): Se
   return {
     targetMinutesByWeekday: targets,
     fullTimeWeeklyMinutes: 2520,
-    workloadPercentX10: 1000,
+    workloadPercentX100: 10000,
     updatedAt: '2026-08-01T00:00:00Z',
     ...extra,
   };
@@ -28,7 +28,7 @@ function settings(targets: ByWeekday<number>, extra: Partial<Settings> = {}): Se
 /** 8h24m Mon-Fri, weekend off — the app's default. */
 const fullTime = settings([504, 504, 504, 504, 504, 0, 0]);
 /** 80%: same daily hours, Friday off. */
-const partTime = settings([504, 504, 504, 504, 0, 0, 0], { workloadPercentX10: 800 });
+const partTime = settings([504, 504, 504, 504, 0, 0, 0], { workloadPercentX100: 8000 });
 
 function entry(date: string, blockOver: Partial<{ arrival: string; leave: string; breakMinutes: number }> = {}): TimeEntry {
   return {
@@ -130,9 +130,10 @@ describe('days off', () => {
 
 describe('part-time distribution', () => {
   it('scales a full-time week by the workload percentage', () => {
-    expect(weeklyTargetMinutes(2520, 1000)).toBe(2520);
-    expect(weeklyTargetMinutes(2520, 800)).toBe(2016); // 42h at 80% = 33h36m
-    expect(weeklyTargetMinutes(2400, 500)).toBe(1200);
+    expect(weeklyTargetMinutes(2520, 10000)).toBe(2520);
+    expect(weeklyTargetMinutes(2520, 8000)).toBe(2016); // 42h at 80% = 33h36m
+    expect(weeklyTargetMinutes(2400, 5000)).toBe(1200);
+    expect(weeklyTargetMinutes(2520, 8025)).toBe(2022); // 42h at 80.25%
   });
 
   it('splits evenly when it divides cleanly', () => {

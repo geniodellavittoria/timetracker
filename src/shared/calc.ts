@@ -55,11 +55,11 @@ export function balanceMinutesFor(entry: TimeEntry, settings: Settings): number 
 }
 
 /**
- * e.g. weeklyTargetMinutes(2520, 800) === 2016 — a 42h week at 80%.
- * The divisor is 1000 because the percentage is stored in tenths (100% === 1000).
+ * e.g. weeklyTargetMinutes(2520, 8000) === 2016 — a 42h week at 80%.
+ * The divisor is 10000 because the percentage is stored in hundredths (100% === 10000).
  */
-export function weeklyTargetMinutes(fullTimeWeeklyMinutes: number, workloadPercentX10: number): number {
-  return Math.round((fullTimeWeeklyMinutes * workloadPercentX10) / 1000);
+export function weeklyTargetMinutes(fullTimeWeeklyMinutes: number, workloadPercentX100: number): number {
+  return Math.round((fullTimeWeeklyMinutes * workloadPercentX100) / 10000);
 }
 
 /**

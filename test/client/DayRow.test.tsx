@@ -13,7 +13,7 @@ function settings(targets: ByWeekday<number>): Settings {
   return {
     targetMinutesByWeekday: targets,
     fullTimeWeeklyMinutes: 2520,
-    workloadPercentX10: 1000,
+    workloadPercentX100: 10000,
     updatedAt: '2026-08-01T00:00:00Z',
   };
 }

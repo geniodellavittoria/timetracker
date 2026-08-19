@@ -23,7 +23,7 @@ function draftFrom(settings: Settings): Draft {
   return {
     targets: [...settings.targetMinutesByWeekday],
     fullTimeWeeklyHours: minutesToHoursValue(settings.fullTimeWeeklyMinutes),
-    workloadPercent: settings.workloadPercentX10 / 10,
+    workloadPercent: settings.workloadPercentX100 / 100,
     worksOn: settings.targetMinutesByWeekday.map((m) => m > 0),
   };
 }
@@ -47,7 +47,7 @@ export function SettingsPage() {
   const workingDayCount = draft.worksOn.filter(Boolean).length;
   const plannedWeekly = weeklyTargetMinutes(
     hoursToMinutes(draft.fullTimeWeeklyHours || 0),
-    Math.round((draft.workloadPercent || 0) * 10),
+    Math.round((draft.workloadPercent || 0) * 100),
   );
   const perDay = workingDayCount > 0 ? Math.round(plannedWeekly / workingDayCount) : 0;
 
@@ -78,7 +78,7 @@ export function SettingsPage() {
       {
         targetMinutesByWeekday: draft.targets as unknown as ByWeekday<number>,
         fullTimeWeeklyMinutes: hoursToMinutes(draft.fullTimeWeeklyHours || 0),
-        workloadPercentX10: Math.round((draft.workloadPercent || 0) * 10),
+        workloadPercentX100: Math.round((draft.workloadPercent || 0) * 100),
       },
       { onSuccess: () => setSaved(true) },
     );
@@ -113,7 +113,7 @@ export function SettingsPage() {
             <span>Pensum</span>
             <span className="input-with-suffix">
               <input
-                type="number" min={0} max={100} step={5} inputMode="decimal"
+                type="number" min={0} max={100} step={0.01} inputMode="decimal"
                 value={String(draft.workloadPercent)}
                 onChange={(e) => applyWorkloadWith({ workloadPercent: Number(e.target.value) })}
               />

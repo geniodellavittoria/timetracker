@@ -63,7 +63,7 @@ export const entryInputSchema = z.discriminatedUnion('dayType', [
 export const settingsInputSchema = z.strictObject({
   targetMinutesByWeekday: z.array(z.number().int().min(0).max(MINUTES_PER_DAY)).length(7),
   fullTimeWeeklyMinutes: z.number().int().min(0).max(7 * MINUTES_PER_DAY),
-  workloadPercentX10: z.number().int().min(0).max(1000),
+  workloadPercentX100: z.number().int().min(0).max(10000),
 });
 
 export const groupBySchema = z.enum(['week', 'month', 'none']).default('none');

@@ -5,7 +5,7 @@ import { normalDay, putJson, request } from './helpers.ts';
 const defaults = {
   targetMinutesByWeekday: [504, 504, 504, 504, 504, 0, 0],
   fullTimeWeeklyMinutes: 2520,
-  workloadPercentX10: 1000,
+  workloadPercentX100: 10000,
 };
 
 describe('settings', () => {
@@ -19,18 +19,18 @@ describe('settings', () => {
     const res = await putJson('/api/settings', {
       targetMinutesByWeekday: [504, 504, 504, 504, 0, 0, 0],
       fullTimeWeeklyMinutes: 2520,
-      workloadPercentX10: 800,
+      workloadPercentX100: 8025,
     });
     expect(res.status).toBe(200);
 
     const reread = await (await request('/api/settings')).json() as any;
     expect(reread.targetMinutesByWeekday).toEqual([504, 504, 504, 504, 0, 0, 0]);
-    expect(reread.workloadPercentX10).toBe(800);
+    expect(reread.workloadPercentX100).toBe(8025);
   });
 
   it('rejects a malformed payload', async () => {
     expect((await putJson('/api/settings', { ...defaults, targetMinutesByWeekday: [480, 480] })).status).toBe(400);
-    expect((await putJson('/api/settings', { ...defaults, workloadPercentX10: 1500 })).status).toBe(400);
+    expect((await putJson('/api/settings', { ...defaults, workloadPercentX100: 15000 })).status).toBe(400);
     expect((await putJson('/api/settings', { ...defaults, targetMinutesByWeekday: [480, 480, 480, 480, 480, 0, 9999] })).status).toBe(400);
     expect((await putJson('/api/settings', { ...defaults, targetMinutesByWeekday: [480, 480, 480, 480, 480, 0, 1.5] })).status).toBe(400);
   });
@@ -68,7 +68,7 @@ describe('summary', () => {
     await putJson('/api/settings', {
       targetMinutesByWeekday: [504, 504, 504, 504, 0, 0, 0],
       fullTimeWeeklyMinutes: 2520,
-      workloadPercentX10: 800,
+      workloadPercentX100: 8000,
     });
     await putJson('/api/entries/2026-08-21', normalDay({ arrival: '09:00', leave: '13:00' })); // Friday
 

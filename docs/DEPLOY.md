@@ -27,11 +27,13 @@ If a browser login isn't possible, set `CLOUDFLARE_API_TOKEN` instead, with **Wo
 
 ## Step 1 — Apply the schema to the production database
 
+`npm run deploy` (Step 3) now runs `npm run db:remote` itself before `wrangler deploy`, so this happens automatically on every deploy — including CI's automatic deploy on push to `main`. There's nothing to run by hand here anymore; this step is left in place only so a first-time deploy can verify the schema landed before moving on.
+
 ```bash
 npm run db:remote
 ```
 
-> **This is the step people skip.** `npm run db:local` and `npm run db:remote` target two completely separate databases. Miss the remote one and the deploy succeeds, the UI loads, and every API call returns `internal_error` — because the tables it expects don't exist. If you see that symptom, come back here first.
+> **This used to be the step people skipped.** `npm run db:local` and `npm run db:remote` target two completely separate databases, and a deploy without the remote schema applied succeeds, the UI loads, and every API call returns `internal_error` — because the tables it expects don't exist. That failure mode is now closed off for the normal deploy path; it can still happen if someone runs `wrangler deploy` directly instead of `npm run deploy`.
 
 Confirm the tables landed:
 
@@ -111,7 +113,7 @@ Then in a browser:
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `internal_error` on `/api/settings` | Schema never applied to production | `npm run db:remote` |
+| `internal_error` on `/api/settings` | Schema never applied to production (only possible if something ran `wrangler deploy` directly instead of `npm run deploy`) | `npm run db:remote` |
 | Predeploy aborts with "placeholder `database_id`" | `wrangler.jsonc` not updated | `npx wrangler d1 create timetracker`, paste the id |
 | `/api/*` 401s even when logged in | Cookie not reaching the Worker (e.g. testing cross-origin) | The app is same-origin by design — verify you're calling the same host the browser is on |
 | Registration doesn't inherit the existing data | Someone else already claimed it, or `LEGACY_CLAIM_EMAIL` doesn't match | Check who's registered (`select id, email from users`); there's no way to un-claim short of editing the database directly |

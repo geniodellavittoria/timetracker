@@ -38,8 +38,8 @@ Reload, auf einem Origin — so entspricht das lokale Verhalten der Produktion.
 ### Deployen
 
 ```bash
-npm run db:remote                      # Migrationen auf die Produktionsdatenbank anwenden
-npm run deploy                         # → https://timetracker.<your-subdomain>.workers.dev
+npm run deploy                         # wendet Migrationen auf die Produktionsdatenbank an, dann Deploy
+                                        # → https://timetracker.<your-subdomain>.workers.dev
 ```
 
 Cloudflares Free Tier reicht dafür bequem: 100k Worker-Requests/Tag, und D1 gibt 5 GB mit
@@ -71,8 +71,8 @@ Daten übernehmen. Details in [docs/DEPLOY.md](docs/DEPLOY.md).
 | `npm run test:tz` | Dieselbe Suite unter `TZ=Europe/Zurich` — siehe unten |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run build` | Produktions-Build nach `dist/` |
-| `npm run deploy` | Build und Deploy auf Cloudflare |
-| `npm run db:local` / `db:remote` | Migrationen anwenden |
+| `npm run deploy` | Build, Migrationen auf die Produktionsdatenbank, Deploy auf Cloudflare |
+| `npm run db:local` / `db:remote` | Migrationen manuell anwenden (lokal / produktiv) |
 
 ## Wie es aufgebaut ist
 
