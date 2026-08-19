@@ -63,7 +63,7 @@ export function SettingsPage() {
     const worksOn = next.worksOn ?? draft.worksOn;
     const weekly = weeklyTargetMinutes(
       hoursToMinutes(fullTimeWeeklyHours || 0),
-      Math.round((workloadPercent || 0) * 10),
+      Math.round((workloadPercent || 0) * 100),
     );
     patch({ ...next, targets: [...distributeWeeklyTarget(weekly, worksOn)] });
   };

@@ -25,6 +25,11 @@ jobs:
       # That file is gitignored, so typecheck depends on this step having run.
       - run: npm ci
 
+      # `build` (below) now runs the Playwright e2e suite as part of itself,
+      # so its browser must be present before that step runs.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -53,9 +58,13 @@ jobs:
 
       - run: npm ci
 
-      # `deploy` runs `predeploy` (config sanity check) and `build` first, then
-      # `wrangler deploy`. Same script a human runs locally, so CI can't drift
-      # from the documented release process.
+      # `deploy` runs `predeploy` (config sanity check) and `build` first —
+      # and `build` now runs the Playwright e2e suite — before `wrangler
+      # deploy`. Same script a human runs locally, so CI can't drift from
+      # the documented release process.
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
       - name: Deploy
         run: npm run deploy
         env:

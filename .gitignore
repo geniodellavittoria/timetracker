@@ -6,3 +6,6 @@ dist/
 .DS_Store
 worker-configuration.d.ts
 coverage/
+test-results/
+playwright-report/
+blob-report/
