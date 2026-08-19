@@ -5,7 +5,7 @@ import { groupBySchema, validateRange } from '@shared/validation.ts';
 import type { HonoEnv } from '../env.ts';
 import { validationError } from '../errors.ts';
 import { listEntries, listEntriesUpTo } from '../repo/entries.ts';
-import { getSettings } from '../repo/settings.ts';
+import { listSettingsPeriods } from '../repo/settings.ts';
 
 export const summaryRoutes = new Hono<HonoEnv>();
 
@@ -37,7 +37,7 @@ summaryRoutes.get('/', async (c) => {
   const today = todayParam ?? new Date().toISOString().slice(0, 10);
 
   const userId = c.get('userId');
-  const settings = await getSettings(c.env.DB, userId);
+  const settings = await listSettingsPeriods(c.env.DB, userId);
   const [entries, allEntriesUpTo] = await Promise.all([
     listEntries(c.env.DB, userId, from!, to!),
     listEntriesUpTo(c.env.DB, userId, to!),

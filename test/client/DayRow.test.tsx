@@ -10,12 +10,14 @@ const MON = '2026-08-17';
 const FRI = '2026-08-21';
 
 function settings(targets: ByWeekday<number>): Settings {
-  return {
+  return [{
+    id: 1,
+    effectiveFrom: '2000-01-01',
     targetMinutesByWeekday: targets,
     fullTimeWeeklyMinutes: 2520,
     workloadPercentX100: 10000,
     updatedAt: '2026-08-01T00:00:00Z',
-  };
+  }];
 }
 
 const fullTime = settings([504, 504, 504, 504, 504, 0, 0]);

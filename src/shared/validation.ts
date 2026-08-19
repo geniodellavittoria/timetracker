@@ -19,7 +19,9 @@ export type IssueCode =
   | 'invalid_range'
   | 'range_too_large'
   | 'invalid_target'
-  | 'email_taken';
+  | 'email_taken'
+  | 'effective_date_taken'
+  | 'last_period';
 
 export interface ValidationIssue {
   path: string;
@@ -60,7 +62,8 @@ export const entryInputSchema = z.discriminatedUnion('dayType', [
   }),
 ]);
 
-export const settingsInputSchema = z.strictObject({
+export const settingsPeriodInputSchema = z.strictObject({
+  effectiveFrom: isoDateSchema,
   targetMinutesByWeekday: z.array(z.number().int().min(0).max(MINUTES_PER_DAY)).length(7),
   fullTimeWeeklyMinutes: z.number().int().min(0).max(7 * MINUTES_PER_DAY),
   workloadPercentX100: z.number().int().min(0).max(10000),

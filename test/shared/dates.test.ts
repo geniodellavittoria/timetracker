@@ -1,9 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import {
   addDays, addMonths, addWeeks, eachDateInRange, endOfIsoWeek, endOfMonth, isoWeekKey,
-  isoWeekKeyToRange, isValidIsoDate, isValidIsoWeekKey, startOfIsoWeek, todayIsoDateLocal,
-  weekdayOf,
+  isoWeekKeyToRange, isValidIsoDate, isValidIsoWeekKey, mostRecentAugustFirst, startOfIsoWeek,
+  todayIsoDateLocal, weekdayOf,
 } from '@shared/dates.ts';
+
+describe('mostRecentAugustFirst', () => {
+  it('returns this year\'s Aug 1 once today is on or after it', () => {
+    expect(mostRecentAugustFirst('2026-08-01')).toBe('2026-08-01');
+    expect(mostRecentAugustFirst('2026-08-19')).toBe('2026-08-01');
+    expect(mostRecentAugustFirst('2026-12-31')).toBe('2026-08-01');
+  });
+
+  it('returns last year\'s Aug 1 before it', () => {
+    expect(mostRecentAugustFirst('2026-07-31')).toBe('2025-08-01');
+    expect(mostRecentAugustFirst('2026-01-01')).toBe('2025-08-01');
+  });
+});
 
 describe('isValidIsoDate', () => {
   it('accepts real dates and rejects impossible ones', () => {

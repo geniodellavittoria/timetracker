@@ -58,7 +58,12 @@ authRoutes.post('/register', async (c) => {
     ]);
     claimedSettings = (settingsResult!.meta.changes ?? 0) > 0;
   }
-  if (!claimedSettings) await provisionDefaultSettings(c.env.DB, user.id);
+  if (!claimedSettings) {
+    // UTC "today" — same fallback source used in routes/summary.ts. Just the
+    // default starting point for an editable date, so a boundary-day
+    // off-by-one against the registrant's local time is not worth chasing.
+    await provisionDefaultSettings(c.env.DB, user.id, new Date().toISOString().slice(0, 10));
+  }
 
   await startSession(c, user.id);
   return c.json({ id: user.id, email: user.email } satisfies AuthUser, 201);

@@ -200,6 +200,19 @@ button.danger:hover:not(:disabled) { color: var(--negative); background: var(--n
 .settings-actions { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
 .settings-actions p { width: 100%; margin: 0; }
 
+.period-history { display: flex; flex-direction: column; }
+.period-row {
+  display: grid;
+  grid-template-columns: 10rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+.period-row:last-child { border-bottom: none; }
+.period-row.is-current { font-weight: 600; }
+.period-actions { display: flex; gap: var(--space-2); }
+
 /* ---------- mobile ---------- */
 
 @media (max-width: 720px) {

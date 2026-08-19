@@ -30,6 +30,11 @@ beforeEach(async () => {
     env.DB.prepare('DELETE FROM settings'),
     env.DB.prepare('DELETE FROM users'),
   ]);
-  const { cookie } = await registerTestUser();
+  const { userId, cookie } = await registerTestUser();
+  // Registration provisions the first Pensum period at the *real* wall-clock
+  // "most recent Aug 1", but most tests exercise fixed fictional dates
+  // (2026-08-xx). Backdating it to the epoch keeps every such fixture date
+  // covered regardless of when the suite actually runs.
+  await env.DB.prepare('UPDATE settings SET effective_from = ?1 WHERE user_id = ?2').bind('2000-01-01', userId).run();
   setDefaultCookie(cookie);
 });

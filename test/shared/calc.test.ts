@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   aggregateTotals, balanceMinutesFor, buildRangeSummary, cumulativeBalance,
-  distributeWeeklyTarget, isDayOff, summarizeDay, targetMinutesFor, weeklyTargetMinutes,
+  distributeWeeklyTarget, isDayOff, periodFor, summarizeDay, targetMinutesFor, weeklyTargetMinutes,
   workedMinutesFor,
 } from '@shared/calc.ts';
-import type { ByWeekday, DayType, Settings, TimeEntry } from '@shared/types.ts';
+import type { ByWeekday, DayType, Settings, SettingsPeriod, TimeEntry } from '@shared/types.ts';
 
 // Mon 2026-08-17 .. Sun 2026-08-23 is ISO week 2026-W34, used throughout.
 const MON = '2026-08-17';
@@ -15,14 +15,17 @@ const FRI = '2026-08-21';
 const SAT = '2026-08-22';
 const SUN = '2026-08-23';
 
-function settings(targets: ByWeekday<number>, extra: Partial<Settings> = {}): Settings {
-  return {
+/** A single-period settings history, its one period effective well before every date used in this file. */
+function settings(targets: ByWeekday<number>, extra: Partial<SettingsPeriod> = {}): Settings {
+  return [{
+    id: 1,
+    effectiveFrom: '2000-01-01',
     targetMinutesByWeekday: targets,
     fullTimeWeeklyMinutes: 2520,
     workloadPercentX100: 10000,
     updatedAt: '2026-08-01T00:00:00Z',
     ...extra,
-  };
+  }];
 }
 
 /** 8h24m Mon-Fri, weekend off — the app's default. */
@@ -167,6 +170,40 @@ describe('part-time distribution', () => {
     const spread = distributeWeeklyTarget(2016, [true, true, false, true, true, false, false]);
     expect(spread).toEqual([504, 504, 0, 504, 504, 0, 0]);
     expect(targetMinutesFor(WED, settings(spread))).toBe(0);
+  });
+});
+
+describe('periodFor / multi-period settings', () => {
+  const older: SettingsPeriod = {
+    id: 1, effectiveFrom: '2026-08-01', updatedAt: '2026-08-01T00:00:00Z',
+    fullTimeWeeklyMinutes: 2520, workloadPercentX100: 10000,
+    targetMinutesByWeekday: [504, 504, 504, 504, 504, 0, 0],
+  };
+  const newer: SettingsPeriod = {
+    id: 2, effectiveFrom: '2026-08-20', updatedAt: '2026-08-15T00:00:00Z',
+    fullTimeWeeklyMinutes: 2400, workloadPercentX100: 8000,
+    targetMinutesByWeekday: [384, 384, 384, 384, 384, 0, 0],
+  };
+  const history: Settings = [older, newer];
+
+  it('resolves to null before the earliest period', () => {
+    expect(periodFor('2026-07-31', history)).toBeNull();
+    expect(targetMinutesFor('2026-07-31', history)).toBe(0);
+  });
+
+  it('resolves to the covering period mid-range', () => {
+    expect(periodFor('2026-08-10', history)).toBe(older);
+    expect(targetMinutesFor(MON, history)).toBe(504); // 2026-08-17, still under `older`
+  });
+
+  it('switches over exactly on the newer period\'s effective date', () => {
+    expect(periodFor('2026-08-19', history)).toBe(older);
+    expect(periodFor('2026-08-20', history)).toBe(newer);
+    expect(targetMinutesFor('2026-08-20', history)).toBe(384);
+  });
+
+  it('the latest period applies indefinitely into the future', () => {
+    expect(periodFor('2030-01-01', history)).toBe(newer);
   });
 });
 

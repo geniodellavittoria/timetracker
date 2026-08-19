@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
-  AuthUser, GroupBy, IsoDate, RangeSummary, Settings, SettingsInput, TimeEntry, TimeEntryInput,
+  AuthUser, GroupBy, IsoDate, RangeSummary, Settings, SettingsPeriod, SettingsPeriodInput, TimeEntry,
+  TimeEntryInput,
 } from '@shared/types.ts';
 import { api } from './client.ts';
 
@@ -46,18 +47,40 @@ export function useLogout() {
 }
 
 export function useSettings() {
-  return useQuery({ queryKey: queryKeys.settings, queryFn: () => api.get<Settings>('/settings') });
+  return useQuery({
+    queryKey: queryKeys.settings,
+    queryFn: async () => (await api.get<{ periods: Settings }>('/settings')).periods,
+  });
 }
 
-export function useUpdateSettings() {
+/** Shared by create/update/delete: a Pensum change makes every balance ever computed stale. */
+function invalidateSettings(qc: ReturnType<typeof useQueryClient>) {
+  void qc.invalidateQueries({ queryKey: queryKeys.settings });
+  void qc.invalidateQueries({ queryKey: ['summary'] });
+}
+
+export function useCreateSettingsPeriod() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: SettingsInput) => api.put<Settings>('/settings', input),
-    onSuccess: (settings) => {
-      qc.setQueryData(queryKeys.settings, settings);
-      // Targets moved, so every balance ever computed is now stale.
-      void qc.invalidateQueries({ queryKey: ['summary'] });
-    },
+    mutationFn: (input: SettingsPeriodInput) => api.post<SettingsPeriod>('/settings/periods', input),
+    onSuccess: () => invalidateSettings(qc),
+  });
+}
+
+export function useUpdateSettingsPeriod() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: number; input: SettingsPeriodInput }) =>
+      api.put<SettingsPeriod>(`/settings/periods/${id}`, input),
+    onSuccess: () => invalidateSettings(qc),
+  });
+}
+
+export function useDeleteSettingsPeriod() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.del(`/settings/periods/${id}`),
+    onSuccess: () => invalidateSettings(qc),
   });
 }
 

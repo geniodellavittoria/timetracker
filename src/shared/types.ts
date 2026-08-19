@@ -43,7 +43,14 @@ export interface TimeEntry {
 
 export type TimeEntryInput = Omit<TimeEntry, 'date' | 'updatedAt'>;
 
-export interface Settings {
+/**
+ * One dated workload snapshot. Valid from `effectiveFrom` up to (but not
+ * including) the next period's `effectiveFrom`, or forever if it's the
+ * latest one — see `periodFor` in `calc.ts` for the resolution rule.
+ */
+export interface SettingsPeriod {
+  id: number;
+  effectiveFrom: IsoDate;
   /**
    * Mon..Sun, in minutes. Authoritative for every calculation.
    * A target of 0 means "day off" — weekend or not.
@@ -59,7 +66,10 @@ export interface Settings {
   updatedAt: string;
 }
 
-export type SettingsInput = Omit<Settings, 'updatedAt'>;
+export type SettingsPeriodInput = Omit<SettingsPeriod, 'id' | 'updatedAt'>;
+
+/** A user's full workload history, sorted ascending by `effectiveFrom` — the shape every calc function takes. */
+export type Settings = readonly SettingsPeriod[];
 
 export interface DaySummary {
   date: IsoDate;

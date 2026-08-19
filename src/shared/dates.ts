@@ -60,6 +60,18 @@ export function compareDates(a: IsoDate, b: IsoDate): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
+/**
+ * The start of the currently-running school/contract year: this year's Aug 1
+ * if `today` is on or after it, otherwise last year's. Used only as the
+ * default `effectiveFrom` for a newly-provisioned account's first Pensum
+ * period — never applied retroactively to existing data.
+ */
+export function mostRecentAugustFirst(today: IsoDate): IsoDate {
+  const year = Number(today.slice(0, 4));
+  const thisYearAug1 = `${year}-08-01`;
+  return today >= thisYearAug1 ? thisYearAug1 : `${year - 1}-08-01`;
+}
+
 /** 0 = Monday … 6 = Sunday. */
 export function weekdayOf(date: IsoDate): WeekdayIndex {
   return ((toUtcDate(date).getUTCDay() + 6) % 7) as WeekdayIndex;

@@ -92,7 +92,7 @@ curl -s -c cookies.txt -X POST -H 'content-type: application/json' \
 
 # Settings come from the real database — this is what proves step 1 worked
 curl -s -b cookies.txt https://timetracker.<sub>.workers.dev/api/settings
-#   expect a targetMinutesByWeekday array
+#   expect { "periods": [ { ..., "targetMinutesByWeekday": [...] } ] }
 
 # An unknown API path must be a JSON 404, not the SPA shell
 curl -s -b cookies.txt https://timetracker.<sub>.workers.dev/api/nope
@@ -102,7 +102,7 @@ curl -s -b cookies.txt https://timetracker.<sub>.workers.dev/api/nope
 Then in a browser:
 
 1. Open the deployed URL — it should redirect to **/login**. Go to **/register** instead and create your account.
-2. **Settings** → set your real workload (full-time week, percentage, tick the days you work — the weekday targets update immediately, no button) → **Save settings**. Reload; values persist.
+2. **Settings** → set your real workload (full-time week, percentage, tick the days you work — the weekday targets update immediately, no button) → **Save settings**. Reload; values persist. This edits the currently active Pensum period; use **Pensum ab Datum ändern** to add a dated (including backdated) change instead.
 3. **Week** → log a day. The figure updates as you type; a `✓` appears about 600 ms later.
 4. **Reload.** The entry is still there.
 5. Open `/months/2026-08` directly and hard-reload — it must render, not 404. That's the SPA fallback.
@@ -124,7 +124,7 @@ Then in a browser:
 
 ## Behaviours that will otherwise surprise you
 
-**Targets are not versioned.** Changing a weekday target in Settings recalculates *every past balance*, not just future ones. There is no per-period history.
+**Targets are versioned by dated Pensum periods.** Each period (full-time hours + workload % + working days) applies only from its own `effectiveFrom` date up to the next period's — never before it. Editing the "current" period in Settings only recalculates balances within its own range; adding a new period (even backdated, via "Pensum ab Datum ändern") only recalculates the range it now covers, not everything before it. Every user always has at least one period — the last one can't be deleted.
 
 **Overnight shifts are rejected.** A leaving time at or before the arrival time fails validation, which also rules out `00:00` as a leaving time. This is enforced by a SQL `CHECK` as well as in the UI and API, so supporting night shifts later means a migration, not just relaxing a check.
 

@@ -6,12 +6,28 @@ import { parseTimeOfDay } from './time.ts';
 import { DAY_TYPES } from './types.ts';
 import type {
   Bucket, ByWeekday, DaySummary, DayType, GroupBy, IsoDate, RangeSummary, Settings,
-  TimeEntry, Totals,
+  SettingsPeriod, TimeEntry, Totals,
 } from './types.ts';
 
-/** The weekday target for a date. 0 means the date is a day off. */
+/**
+ * The period covering a date: the latest one whose `effectiveFrom` is on or
+ * before it. `null` if the date predates every period (only possible for
+ * dates before an account's earliest period, which real usage shouldn't hit
+ * since every account starts with one). Assumes `settings` is sorted
+ * ascending by `effectiveFrom`, as every producer of it guarantees.
+ */
+export function periodFor(date: IsoDate, settings: Settings): SettingsPeriod | null {
+  let applicable: SettingsPeriod | null = null;
+  for (const period of settings) {
+    if (period.effectiveFrom <= date) applicable = period;
+    else break;
+  }
+  return applicable;
+}
+
+/** The weekday target for a date. 0 means the date is a day off (or no period covers it yet). */
 export function targetMinutesFor(date: IsoDate, settings: Settings): number {
-  return settings.targetMinutesByWeekday[weekdayOf(date)] ?? 0;
+  return periodFor(date, settings)?.targetMinutesByWeekday[weekdayOf(date)] ?? 0;
 }
 
 /**

@@ -1,22 +1,31 @@
 import { describe, expect, it } from 'vitest';
-import { normalDay, putJson, request } from './helpers.ts';
-
+import { normalDay, postJson, putJson, request } from './helpers.ts';
 
 const defaults = {
+  effectiveFrom: '2000-01-01',
   targetMinutesByWeekday: [504, 504, 504, 504, 504, 0, 0],
   fullTimeWeeklyMinutes: 2520,
   workloadPercentX100: 10000,
 };
 
+/** The default test user always has exactly one period until a test adds more. */
+async function firstPeriodId(): Promise<number> {
+  const body = await (await request('/api/settings')).json() as { periods: { id: number }[] };
+  return body.periods[0]!.id;
+}
+
 describe('settings', () => {
-  it('seeds a 42h week at 100%', async () => {
+  it('seeds a 42h week at 100%, backdated to the epoch by the test harness', async () => {
     const body = await (await request('/api/settings')).json() as any;
-    expect(body).toMatchObject(defaults);
+    expect(body.periods).toHaveLength(1);
+    expect(body.periods[0]).toMatchObject(defaults);
   });
 
   it('round-trips a part-time week with a mid-week day off', async () => {
     // 80%, Friday off.
-    const res = await putJson('/api/settings', {
+    const id = await firstPeriodId();
+    const res = await putJson(`/api/settings/periods/${id}`, {
+      effectiveFrom: '2000-01-01',
       targetMinutesByWeekday: [504, 504, 504, 504, 0, 0, 0],
       fullTimeWeeklyMinutes: 2520,
       workloadPercentX100: 8025,
@@ -24,15 +33,71 @@ describe('settings', () => {
     expect(res.status).toBe(200);
 
     const reread = await (await request('/api/settings')).json() as any;
-    expect(reread.targetMinutesByWeekday).toEqual([504, 504, 504, 504, 0, 0, 0]);
-    expect(reread.workloadPercentX100).toBe(8025);
+    expect(reread.periods[0].targetMinutesByWeekday).toEqual([504, 504, 504, 504, 0, 0, 0]);
+    expect(reread.periods[0].workloadPercentX100).toBe(8025);
   });
 
   it('rejects a malformed payload', async () => {
-    expect((await putJson('/api/settings', { ...defaults, targetMinutesByWeekday: [480, 480] })).status).toBe(400);
-    expect((await putJson('/api/settings', { ...defaults, workloadPercentX100: 15000 })).status).toBe(400);
-    expect((await putJson('/api/settings', { ...defaults, targetMinutesByWeekday: [480, 480, 480, 480, 480, 0, 9999] })).status).toBe(400);
-    expect((await putJson('/api/settings', { ...defaults, targetMinutesByWeekday: [480, 480, 480, 480, 480, 0, 1.5] })).status).toBe(400);
+    expect((await postJson('/api/settings/periods', { ...defaults, targetMinutesByWeekday: [480, 480] })).status).toBe(400);
+    expect((await postJson('/api/settings/periods', { ...defaults, workloadPercentX100: 15000 })).status).toBe(400);
+    expect((await postJson('/api/settings/periods', { ...defaults, targetMinutesByWeekday: [480, 480, 480, 480, 480, 0, 9999] })).status).toBe(400);
+    expect((await postJson('/api/settings/periods', { ...defaults, targetMinutesByWeekday: [480, 480, 480, 480, 480, 0, 1.5] })).status).toBe(400);
+    expect((await postJson('/api/settings/periods', { ...defaults, effectiveFrom: 'not-a-date' })).status).toBe(400);
+  });
+
+  it('adds, lists and resolves a second dated period', async () => {
+    const created = await postJson('/api/settings/periods', {
+      effectiveFrom: '2026-08-20',
+      targetMinutesByWeekday: [384, 384, 384, 384, 384, 0, 0],
+      fullTimeWeeklyMinutes: 2400,
+      workloadPercentX100: 8000,
+    });
+    expect(created.status).toBe(201);
+
+    const body = await (await request('/api/settings')).json() as any;
+    expect(body.periods.map((p: any) => p.effectiveFrom)).toEqual(['2000-01-01', '2026-08-20']);
+
+    // A day before the new period's start still uses the old one.
+    const before = await (await request('/api/summary?from=2026-08-19&to=2026-08-19&groupBy=none&today=2026-08-19')).json() as any;
+    expect(before.days[0].targetMinutes).toBe(504);
+    // The effective date itself, and everything after, uses the new one.
+    const on = await (await request('/api/summary?from=2026-08-20&to=2026-08-20&groupBy=none&today=2026-08-20')).json() as any;
+    expect(on.days[0].targetMinutes).toBe(384);
+  });
+
+  it('rejects a second period on a date that is already taken', async () => {
+    const res = await postJson('/api/settings/periods', {
+      effectiveFrom: '2000-01-01',
+      targetMinutesByWeekday: [480, 480, 480, 480, 480, 0, 0],
+      fullTimeWeeklyMinutes: 2400,
+      workloadPercentX100: 10000,
+    });
+    expect(res.status).toBe(409);
+  });
+
+  it('deletes a period, but never the last remaining one', async () => {
+    const onlyId = await firstPeriodId();
+    const refused = await request(`/api/settings/periods/${onlyId}`, { method: 'DELETE' });
+    expect(refused.status).toBe(409);
+
+    const created = await postJson('/api/settings/periods', {
+      effectiveFrom: '2026-08-20',
+      targetMinutesByWeekday: [384, 384, 384, 384, 384, 0, 0],
+      fullTimeWeeklyMinutes: 2400,
+      workloadPercentX100: 8000,
+    });
+    const { id: secondId } = await created.json() as { id: number };
+
+    const ok = await request(`/api/settings/periods/${secondId}`, { method: 'DELETE' });
+    expect(ok.status).toBe(204);
+
+    const body = await (await request('/api/settings')).json() as any;
+    expect(body.periods).toHaveLength(1);
+  });
+
+  it('404s updating or deleting a period that does not exist', async () => {
+    expect((await putJson('/api/settings/periods/999999', defaults)).status).toBe(404);
+    expect((await request('/api/settings/periods/999999', { method: 'DELETE' })).status).toBe(404);
   });
 });
 
@@ -65,7 +130,9 @@ describe('summary', () => {
   });
 
   it('books work on a mid-week day off as pure overtime and never flags it', async () => {
-    await putJson('/api/settings', {
+    const id = await firstPeriodId();
+    await putJson(`/api/settings/periods/${id}`, {
+      effectiveFrom: '2000-01-01',
       targetMinutesByWeekday: [504, 504, 504, 504, 0, 0, 0],
       fullTimeWeeklyMinutes: 2520,
       workloadPercentX100: 8000,

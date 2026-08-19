@@ -96,10 +96,10 @@ describe('legacy data claim', () => {
          VALUES (0, '2026-08-10', 'normal', 480, 1020, 30)`,
       ),
       db.prepare(
-        `INSERT INTO settings (user_id, full_time_weekly_minutes, workload_percent_x100,
+        `INSERT INTO settings (user_id, effective_from, full_time_weekly_minutes, workload_percent_x100,
            target_minutes_mon, target_minutes_tue, target_minutes_wed, target_minutes_thu,
            target_minutes_fri, target_minutes_sat, target_minutes_sun)
-         VALUES (0, 2520, 9000, 504, 504, 504, 504, 504, 0, 0)`,
+         VALUES (0, '1970-01-01', 2520, 9000, 504, 504, 504, 504, 504, 0, 0)`,
       ),
     ]);
 
@@ -107,13 +107,13 @@ describe('legacy data claim', () => {
     const firstEntries = await request('/api/entries?from=2026-08-01&to=2026-08-31', { headers: { cookie: first.cookie } });
     const firstSettings = await request('/api/settings', { headers: { cookie: first.cookie } });
     await expect(firstEntries.json()).resolves.toMatchObject({ entries: [{ date: '2026-08-10' }] });
-    await expect(firstSettings.json()).resolves.toMatchObject({ workloadPercentX100: 9000 });
+    await expect(firstSettings.json()).resolves.toMatchObject({ periods: [{ workloadPercentX100: 9000 }] });
 
     const second = await registerTestUser({ email: 'second@example.test' });
     const secondEntries = await request('/api/entries?from=2026-08-01&to=2026-08-31', { headers: { cookie: second.cookie } });
     const secondSettings = await request('/api/settings', { headers: { cookie: second.cookie } });
     await expect(secondEntries.json()).resolves.toEqual({ entries: [] });
-    await expect(secondSettings.json()).resolves.toMatchObject({ workloadPercentX100: 10000 }); // default, not claimed
+    await expect(secondSettings.json()).resolves.toMatchObject({ periods: [{ workloadPercentX100: 10000 }] }); // default, not claimed
   });
 });
 
