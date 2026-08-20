@@ -29,6 +29,7 @@ export function MonthPage() {
         onPrev={() => navigate(`/months/${addMonths(key, -1)}`)}
         onNext={() => navigate(`/months/${addMonths(key, 1)}`)}
         onToday={() => navigate(`/months/${monthKey(today)}`)}
+        onJump={(date) => navigate(`/months/${monthKey(date)}`)}
       />
 
       {error && <p className="error-banner">Dieser Monat konnte nicht geladen werden.</p>}

@@ -19,7 +19,9 @@ test('applying a canton template creates an editable holiday entry', async ({ pa
 
   await page.getByRole('link', { name: 'Einstellungen' }).click();
 
+  // "Feiertage" starts collapsed — only "Pensum" is open by default.
   const holidayCard = page.locator('#holiday-template-card');
+  await holidayCard.locator('summary').click();
   await holidayCard.getByLabel('Kanton').selectOption('ZH');
 
   await expect(holidayCard.locator('.period-history')).toContainText('Nationalfeiertag');

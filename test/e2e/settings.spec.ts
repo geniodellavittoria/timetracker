@@ -62,13 +62,17 @@ test('a backdated period only changes balances within its own range', async ({ p
 
   await page.getByRole('link', { name: 'Einstellungen' }).click();
 
+  // "Pensum ab Datum ändern" starts collapsed — only "Pensum" is open by default.
   const scheduleCard = page.locator('#schedule-period-card');
+  await scheduleCard.locator('summary').click();
   await scheduleCard.getByLabel('Gültig ab').fill('2026-01-01');
   await scheduleCard.getByLabel('Vollzeit-Woche').fill('40');
   await scheduleCard.getByLabel('Pensum').fill('50');
   await scheduleCard.getByRole('button', { name: 'Periode anlegen' }).click();
 
-  await expect(page.locator('.period-history')).toContainText('ab 01.01.2026');
+  const historySection = page.locator('.settings-section', { hasText: 'Pensum-Verlauf' });
+  await historySection.locator('summary').click();
+  await expect(historySection.locator('.period-history')).toContainText('ab 01.01.2026');
 
   // Week 2026-W06 (~early Feb) falls inside the new period's range but well
   // before the account's original period (provisioned at this-or-last

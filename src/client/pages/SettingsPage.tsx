@@ -173,8 +173,14 @@ export function SettingsPage() {
     <section className="settings">
       <h2>Einstellungen</h2>
 
-      <div className="card settings-card" id="current-period-card">
-        <h3>Pensum</h3>
+      <details className="card settings-section" id="current-period-card" open>
+        <summary>
+          <span className="section-title">Pensum</span>
+          <span className="section-summary faint">
+            {formatDuration(currentPerDay)}/Tag ab {formatIsoDateDMY(currentPeriod.effectiveFrom)}
+          </span>
+        </summary>
+        <div className="section-body">
         <p className="muted small">
           Vollzeitpensum und Prozentsatz eingeben, die tatsächlichen Arbeitstage ankreuzen und
           anwenden. Ein abgewählter Wochentag wird zum freien Tag — er zählt nicht mehr zum Ziel
@@ -249,9 +255,7 @@ export function SettingsPage() {
             )}
           </span>
         </div>
-      </div>
 
-      <div className="card settings-card">
         <h3>Stunden pro Wochentag</h3>
         <p className="muted small">
           Was jeder Tag der aktuellen Periode effektiv zählt. Ein Wert kann von Hand angepasst
@@ -291,26 +295,31 @@ export function SettingsPage() {
           <span>Wochentotal <strong><DurationText minutes={currentWeekly} /></strong></span>
           {customised && <span className="chip chip-warning">angepasst</span>}
         </div>
-      </div>
 
-      <div className="settings-actions">
-        <button type="button" className="primary" onClick={saveCurrent} disabled={updatePeriod.isPending}>
-          {updatePeriod.isPending ? 'Speichert…' : 'Einstellungen speichern'}
-        </button>
-        {currentSaved && <span className="saved-tick">✓ Gespeichert</span>}
-        {updatePeriod.error && !currentSaved && (
-          <span className="save-error">{apiErrorMessage(updatePeriod.error, 'Konnte nicht gespeichert werden.')}</span>
-        )}
-        <p className="faint small">
-          Ein Pensum gilt nur ab seinem Startdatum bis zur nächsten Periode — eine Änderung
-          berechnet nur die davon betroffenen Salden neu, nie die davor liegenden. Auch ein
-          rückdatiertes Startdatum ist möglich, um eine bereits laufende Periode nachträglich zu
-          korrigieren.
-        </p>
-      </div>
+        <div className="settings-actions">
+          <button type="button" className="primary" onClick={saveCurrent} disabled={updatePeriod.isPending}>
+            {updatePeriod.isPending ? 'Speichert…' : 'Einstellungen speichern'}
+          </button>
+          {currentSaved && <span className="saved-tick">✓ Gespeichert</span>}
+          {updatePeriod.error && !currentSaved && (
+            <span className="save-error">{apiErrorMessage(updatePeriod.error, 'Konnte nicht gespeichert werden.')}</span>
+          )}
+          <p className="faint small">
+            Ein Pensum gilt nur ab seinem Startdatum bis zur nächsten Periode — eine Änderung
+            berechnet nur die davon betroffenen Salden neu, nie die davor liegenden. Auch ein
+            rückdatiertes Startdatum ist möglich, um eine bereits laufende Periode nachträglich zu
+            korrigieren.
+          </p>
+        </div>
+        </div>
+      </details>
 
-      <div className="card settings-card" id="schedule-period-card">
-        <h3>Pensum ab Datum ändern</h3>
+      <details className="card settings-section" id="schedule-period-card">
+        <summary>
+          <span className="section-title">Pensum ab Datum ändern</span>
+          <span className="section-summary faint">Neue Periode planen</span>
+        </summary>
+        <div className="section-body">
         <p className="muted small">
           Neue Periode ab einem Datum anlegen — auch rückwirkend. Zum Bearbeiten oder Löschen
           einer bestehenden Periode unten im Verlauf „Bearbeiten“ wählen.
@@ -401,10 +410,15 @@ export function SettingsPage() {
           )}
           {scheduleErrorMessage && <span className="save-error">{scheduleErrorMessage}</span>}
         </div>
-      </div>
+        </div>
+      </details>
 
-      <div className="card settings-card">
-        <h3>Pensum-Verlauf</h3>
+      <details className="card settings-section">
+        <summary>
+          <span className="section-title">Pensum-Verlauf</span>
+          <span className="section-summary faint">{periods.length} {periods.length === 1 ? 'Periode' : 'Perioden'}</span>
+        </summary>
+        <div className="section-body">
         <div className="period-history">
           {sortedHistory.map((period) => {
             const weekly = period.targetMinutesByWeekday.reduce((a, b) => a + b, 0);
@@ -442,9 +456,17 @@ export function SettingsPage() {
         {deletePeriod.error && (
           <p className="save-error">{apiErrorMessage(deletePeriod.error, 'Periode konnte nicht gelöscht werden.')}</p>
         )}
-      </div>
+        </div>
+      </details>
 
-      <HolidayTemplateCard />
+      <details className="card settings-section" id="holiday-template-card">
+        <summary>
+          <span className="section-title">Feiertage</span>
+        </summary>
+        <div className="section-body">
+          <HolidayTemplateCard />
+        </div>
+      </details>
     </section>
   );
 }

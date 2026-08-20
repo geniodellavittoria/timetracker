@@ -46,11 +46,13 @@ function AuthenticatedApp() {
         </nav>
         <span className="spacer" />
         <CumulativeBalance />
-        {user && <span className="faint small">{user.email}</span>}
-        <ThemeToggle />
-        <button type="button" className="ghost small" onClick={() => logout.mutate()} disabled={logout.isPending}>
-          Abmelden
-        </button>
+        <div className="header-account">
+          {user && <span className="faint small">{user.email}</span>}
+          <ThemeToggle />
+          <button type="button" className="ghost small" onClick={() => logout.mutate()} disabled={logout.isPending}>
+            Abmelden
+          </button>
+        </div>
       </header>
 
       <main className="app">

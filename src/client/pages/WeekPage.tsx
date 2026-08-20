@@ -32,6 +32,7 @@ export function WeekPage() {
         onPrev={() => navigate(`/weeks/${addWeeks(weekKey, -1)}`)}
         onNext={() => navigate(`/weeks/${addWeeks(weekKey, 1)}`)}
         onToday={() => navigate(`/weeks/${isoWeekKey(today)}`)}
+        onJump={(date) => navigate(`/weeks/${isoWeekKey(date)}`)}
       />
 
       {(settingsQuery.error || summaryQuery.error) && (

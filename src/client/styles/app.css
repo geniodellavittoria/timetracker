@@ -45,6 +45,7 @@ button.danger:hover:not(:disabled) { color: var(--negative); background: var(--n
 }
 .period-nav h2 { min-width: 0; }
 .period-nav button { min-width: 2.25rem; }
+.period-jump input { width: 9.5rem; }
 
 /* ---------- week view ---------- */
 
@@ -146,8 +147,26 @@ button.danger:hover:not(:disabled) { color: var(--negative); background: var(--n
 
 .settings { display: flex; flex-direction: column; gap: var(--space-4); }
 .settings-card { padding: var(--space-4); }
-.settings-card h3 { margin-bottom: var(--space-2); }
-.settings-card p { margin: 0 0 var(--space-3); }
+.settings-card h3, .section-body h3 { margin-bottom: var(--space-2); }
+.settings-card p, .section-body p { margin: 0 0 var(--space-3); }
+
+/* Same collapsible idiom as .week-bucket (month view) — a plain <details>,
+   only the summary row visible when closed, no JS state needed. */
+.settings-section > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  font-weight: 600;
+  flex-wrap: wrap;
+}
+.settings-section > summary::-webkit-details-marker { display: none; }
+.section-summary { font-weight: 400; font-size: 0.85rem; }
+.section-body { padding: var(--space-3) var(--space-4) var(--space-4); border-top: 1px solid var(--border); }
+.section-body h3 { margin-top: var(--space-4); }
+.section-body h3:first-child { margin-top: 0; }
 
 .workload-inputs { display: flex; align-items: flex-end; gap: var(--space-4); flex-wrap: wrap; }
 .labelled { display: flex; flex-direction: column; gap: var(--space-1); font-size: 0.85rem; color: var(--text-muted); }

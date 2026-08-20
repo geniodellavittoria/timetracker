@@ -75,8 +75,7 @@ export function HolidayTemplateCard() {
   };
 
   return (
-    <div className="card settings-card" id="holiday-template-card">
-      <h3>Feiertage</h3>
+    <>
       <p className="muted small">
         Kantonsvorlage übernehmen, dann einzelne Tage bei Bedarf anpassen — Gemeinden weichen
         teils von der kantonalen Liste ab. Diese Liste ist ein bestmöglicher Ausgangspunkt, keine
@@ -136,6 +135,6 @@ export function HolidayTemplateCard() {
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }
