@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { distributeWeeklyTarget, periodFor, weeklyTargetMinutes } from '@shared/calc.ts';
-import { todayIsoDateLocal, WEEKDAY_LABELS, WEEKDAY_LABELS_LONG } from '@shared/dates.ts';
+import { formatIsoDateDMY, todayIsoDateLocal, WEEKDAY_LABELS, WEEKDAY_LABELS_LONG } from '@shared/dates.ts';
 import { formatDuration, hoursToMinutes, minutesToHoursValue } from '@shared/time.ts';
 import type { ByWeekday, IsoDate, SettingsPeriod, SettingsPeriodInput } from '@shared/types.ts';
 import { ApiError } from '../api/client.ts';
 import { DurationText } from '../components/DurationText.tsx';
+import { HolidayTemplateCard } from '../components/HolidayTemplateCard.tsx';
 import {
   useCreateSettingsPeriod, useDeleteSettingsPeriod, useSettings, useUpdateSettingsPeriod,
 } from '../api/queries.ts';
@@ -178,7 +179,7 @@ export function SettingsPage() {
           Vollzeitpensum und Prozentsatz eingeben, die tatsächlichen Arbeitstage ankreuzen und
           anwenden. Ein abgewählter Wochentag wird zum freien Tag — er zählt nicht mehr zum Ziel
           und wird nie als nicht erfasst gemeldet. Gilt für die aktuell laufende Periode
-          (ab <strong>{formatIsoDate(currentPeriod.effectiveFrom)}</strong>) — Pensumänderungen ab
+          (ab <strong>{formatIsoDateDMY(currentPeriod.effectiveFrom)}</strong>) — Pensumänderungen ab
           einem anderen Datum unten bei „Pensum ab Datum ändern“.
         </p>
 
@@ -413,7 +414,7 @@ export function SettingsPage() {
             return (
               <div key={period.id} className={isCurrent ? 'period-row is-current' : 'period-row'}>
                 <span>
-                  ab {formatIsoDate(period.effectiveFrom)}
+                  ab {formatIsoDateDMY(period.effectiveFrom)}
                   {isCurrent && <span className="chip chip-today">Aktuell</span>}
                 </span>
                 <span className="faint num">
@@ -442,11 +443,8 @@ export function SettingsPage() {
           <p className="save-error">{apiErrorMessage(deletePeriod.error, 'Periode konnte nicht gelöscht werden.')}</p>
         )}
       </div>
+
+      <HolidayTemplateCard />
     </section>
   );
-}
-
-function formatIsoDate(date: IsoDate): string {
-  const [y, m, d] = date.split('-');
-  return `${d}.${m}.${y}`;
 }

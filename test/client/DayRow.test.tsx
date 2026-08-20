@@ -280,4 +280,39 @@ describe('DayRow', () => {
       expect(screen.getByLabelText('Kommen (Block 2)')).toBeInTheDocument();
     });
   });
+
+  it('shows a holiday entry\'s note and keeps it after an autosave/refetch', async () => {
+    const saved: TimeEntry = {
+      date: MON,
+      dayType: 'holiday',
+      blocks: [],
+      note: 'Auffahrt',
+      updatedAt: '2026-08-17T10:00:00Z',
+    };
+    renderLiveRow(MON, fullTime, saved);
+
+    expect(screen.getByLabelText('Notiz')).toHaveValue('Auffahrt');
+  });
+
+  it('autosaves an edited note and survives the resync', async () => {
+    const user = userEvent.setup();
+    const saved: TimeEntry = {
+      date: MON,
+      dayType: 'holiday',
+      blocks: [],
+      note: 'Auffahrt',
+      updatedAt: '2026-08-17T10:00:00Z',
+    };
+    const { onSave } = renderLiveRow(MON, fullTime, saved);
+
+    await user.clear(screen.getByLabelText('Notiz'));
+    await user.type(screen.getByLabelText('Notiz'), 'Auffahrt (Zürich)');
+    await new Promise((r) => setTimeout(r, 1200));
+
+    expect(onSave).toHaveBeenCalled();
+    expect(savedPayloads(onSave).at(-1).note).toBe('Auffahrt (Zürich)');
+    await waitFor(() => {
+      expect(screen.getByLabelText('Notiz')).toHaveValue('Auffahrt (Zürich)');
+    });
+  });
 });

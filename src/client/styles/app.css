@@ -93,6 +93,7 @@ button.danger:hover:not(:disabled) { color: var(--negative); background: var(--n
 .arrow { user-select: none; }
 .day-type { min-width: 6.5rem; }
 .counts-as { font-size: 0.85rem; }
+.day-note input { width: 10rem; }
 
 /* ---------- totals ---------- */
 

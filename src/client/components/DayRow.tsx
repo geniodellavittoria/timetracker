@@ -62,6 +62,18 @@ export function DayRow({
         ) : (
           <>
             <DayTypeSelect value={form.draft.dayType} onChange={(dayType) => form.update({ dayType })} />
+            <label className="field day-note">
+              <span className="visually-hidden">Notiz</span>
+              <input
+                type="text"
+                placeholder="Notiz"
+                maxLength={500}
+                value={form.draft.note}
+                aria-label="Notiz"
+                onChange={(e) => form.update({ note: e.target.value })}
+                onBlur={form.flush}
+              />
+            </label>
             {isSpecial ? (
               <span className="muted counts-as">
                 zählt als Ziel · <DurationText minutes={day.targetMinutes} />

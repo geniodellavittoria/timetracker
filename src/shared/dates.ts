@@ -180,6 +180,12 @@ export function formatDayMonth(date: IsoDate): string {
   return `${d.getUTCDate()}. ${MONTH_LABELS[d.getUTCMonth()]}`;
 }
 
+/** '17.08.2026'. */
+export function formatIsoDateDMY(date: IsoDate): string {
+  const [y, m, d] = date.split('-');
+  return `${d}.${m}.${y}`;
+}
+
 /** 'Mo 17. Aug'. */
 export function formatWeekdayDayMonth(date: IsoDate): string {
   return `${WEEKDAY_LABELS[weekdayOf(date)]} ${formatDayMonth(date)}`;

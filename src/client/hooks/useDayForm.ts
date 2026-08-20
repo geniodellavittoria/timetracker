@@ -12,6 +12,7 @@ export interface TimeBlockDraft {
 export interface DayDraft {
   dayType: DayType;
   blocks: TimeBlockDraft[];
+  note: string;
 }
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -28,6 +29,7 @@ function draftFrom(entry: TimeEntry | null): DayDraft {
     blocks: entry && entry.blocks.length > 0
       ? entry.blocks.map((b) => ({ ...b }))
       : [emptyBlock()],
+    note: entry?.note ?? '',
   };
 }
 
@@ -36,14 +38,19 @@ function isBlankBlock(block: TimeBlockDraft): boolean {
   return block.arrival === '' && block.leave === '' && block.breakMinutes === 0;
 }
 
+function noteOf(draft: Pick<DayDraft, 'note'>): string | null {
+  const trimmed = draft.note.trim();
+  return trimmed === '' ? null : trimmed;
+}
+
 export function draftToInput(draft: DayDraft): TimeEntryInput {
   if (draft.dayType !== 'normal') {
-    return { dayType: draft.dayType, blocks: [], note: null };
+    return { dayType: draft.dayType, blocks: [], note: noteOf(draft) };
   }
   return {
     dayType: 'normal',
     blocks: draft.blocks.filter((b) => !isBlankBlock(b)).map((b) => ({ ...b })),
-    note: null,
+    note: noteOf(draft),
   };
 }
 
@@ -53,13 +60,13 @@ export function draftToInput(draft: DayDraft): TimeEntryInput {
  */
 function inputSignatureOf(input: TimeEntryInput): string {
   const blocks = input.blocks.map((b) => `${b.arrival}-${b.leave}-${b.breakMinutes}`).join(',');
-  return `${input.dayType}|${blocks}`;
+  return `${input.dayType}|${blocks}|${input.note ?? ''}`;
 }
 
 /** The same signature for what the server already holds. */
 function persistedSignatureOf(entry: TimeEntry | null): string {
   if (!entry) return 'none|';
-  return inputSignatureOf({ dayType: entry.dayType, blocks: entry.blocks, note: null });
+  return inputSignatureOf({ dayType: entry.dayType, blocks: entry.blocks, note: entry.note });
 }
 
 /**
@@ -79,7 +86,7 @@ function withPendingBlanks(next: DayDraft, prev: DayDraft): DayDraft {
 function signatureOf(entry: TimeEntry | null): string {
   if (!entry) return 'none';
   const blocks = entry.blocks.map((b) => `${b.arrival}-${b.leave}-${b.breakMinutes}`).join(',');
-  return `${entry.dayType}|${blocks}|${entry.updatedAt}`;
+  return `${entry.dayType}|${blocks}|${entry.note ?? ''}|${entry.updatedAt}`;
 }
 
 function isEmptyDraft(draft: DayDraft): boolean {

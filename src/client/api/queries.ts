@@ -10,6 +10,7 @@ export const queryKeys = {
   settings: ['settings'] as const,
   summary: (from: IsoDate, to: IsoDate, groupBy: GroupBy, today: IsoDate) =>
     ['summary', from, to, groupBy, today] as const,
+  entriesRange: (from: IsoDate, to: IsoDate) => ['entries', from, to] as const,
 };
 
 export function useMe() {
@@ -118,5 +119,33 @@ export function useDeleteEntry() {
   return useMutation({
     mutationFn: (date: IsoDate) => api.del(`/entries/${date}`),
     onSettled: () => qc.invalidateQueries({ queryKey: ['summary'] }),
+  });
+}
+
+/** Raw entries in a date range — unlike `useSummary`, no targets/balances computed, just what's on record. */
+export function useEntriesInRange({ from, to }: { from: IsoDate; to: IsoDate }) {
+  return useQuery({
+    queryKey: queryKeys.entriesRange(from, to),
+    queryFn: async () => (await api.get<{ entries: TimeEntry[] }>(`/entries?from=${from}&to=${to}`)).entries,
+  });
+}
+
+/**
+ * Applies a holiday template: one PUT per date, run in parallel since a
+ * canton/year is at most a few dozen dates. Callers are expected to have
+ * already filtered out dates that already carry an entry — this never
+ * overwrites existing data itself, it just writes what it's given.
+ */
+export function useApplyHolidays() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (dates: { date: IsoDate; name: string }[]) => Promise.all(
+      dates.map(({ date, name }) =>
+        api.put<TimeEntry>(`/entries/${date}`, { dayType: 'holiday', blocks: [], note: name } satisfies TimeEntryInput)),
+    ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['entries'] });
+      void qc.invalidateQueries({ queryKey: ['summary'] });
+    },
   });
 }
