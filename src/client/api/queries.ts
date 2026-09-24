@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AuthUser, GroupBy, IsoDate, RangeSummary, Settings, SettingsPeriod, SettingsPeriodInput, TimeEntry,
-  TimeEntryInput,
+  TimeEntryInput, VacationAllowance, VacationAllowanceInput, VacationSummary,
 } from '@shared/types.ts';
 import { api } from './client.ts';
 
@@ -11,6 +11,7 @@ export const queryKeys = {
   summary: (from: IsoDate, to: IsoDate, groupBy: GroupBy, today: IsoDate) =>
     ['summary', from, to, groupBy, today] as const,
   entriesRange: (from: IsoDate, to: IsoDate) => ['entries', from, to] as const,
+  vacationSummary: (year: number, today: IsoDate) => ['vacation', 'summary', year, today] as const,
 };
 
 export function useMe() {
@@ -58,6 +59,8 @@ export function useSettings() {
 function invalidateSettings(qc: ReturnType<typeof useQueryClient>) {
   void qc.invalidateQueries({ queryKey: queryKeys.settings });
   void qc.invalidateQueries({ queryKey: ['summary'] });
+  // Ferien days only count on days with a target, which the Pensum decides.
+  void qc.invalidateQueries({ queryKey: ['vacation'] });
 }
 
 export function useCreateSettingsPeriod() {
@@ -82,6 +85,31 @@ export function useDeleteSettingsPeriod() {
   return useMutation({
     mutationFn: (id: number) => api.del(`/settings/periods/${id}`),
     onSuccess: () => invalidateSettings(qc),
+  });
+}
+
+export function useVacationSummary({ year, today }: { year: number; today: IsoDate }) {
+  return useQuery({
+    queryKey: queryKeys.vacationSummary(year, today),
+    queryFn: () => api.get<VacationSummary>(`/vacation/summary?year=${year}&today=${today}`),
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useUpsertVacationAllowance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ year, input }: { year: number; input: VacationAllowanceInput }) =>
+      api.put<VacationAllowance>(`/vacation/allowances/${year}`, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['vacation'] }),
+  });
+}
+
+export function useDeleteVacationAllowance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (year: number) => api.del(`/vacation/allowances/${year}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['vacation'] }),
   });
 }
 
@@ -110,7 +138,11 @@ export function useUpsertEntry() {
       api.put<TimeEntry>(`/entries/${date}`, input),
     // One saved day changes the week totals, the month totals and the
     // cumulative header balance — refetching the summary covers all three.
-    onSettled: () => qc.invalidateQueries({ queryKey: ['summary'] }),
+    // Marking a day as Ferien also changes the Ferien counts.
+    onSettled: () => Promise.all([
+      qc.invalidateQueries({ queryKey: ['summary'] }),
+      qc.invalidateQueries({ queryKey: ['vacation'] }),
+    ]),
   });
 }
 
@@ -118,7 +150,10 @@ export function useDeleteEntry() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (date: IsoDate) => api.del(`/entries/${date}`),
-    onSettled: () => qc.invalidateQueries({ queryKey: ['summary'] }),
+    onSettled: () => Promise.all([
+      qc.invalidateQueries({ queryKey: ['summary'] }),
+      qc.invalidateQueries({ queryKey: ['vacation'] }),
+    ]),
   });
 }
 

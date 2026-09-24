@@ -3,6 +3,7 @@ import {
   addWeeks, formatWeekLabel, isoWeekKey, isoWeekKeyToRange, isValidIsoWeekKey, todayIsoDateLocal,
 } from '@shared/dates.ts';
 import { DayRow } from '../components/DayRow.tsx';
+import { WeekChart } from '../components/charts/WeekChart.tsx';
 import { PeriodNav } from '../components/PeriodNav.tsx';
 import { TotalsBar } from '../components/TotalsBar.tsx';
 import { useDeleteEntry, useSettings, useSummary, useUpsertEntry } from '../api/queries.ts';
@@ -57,6 +58,7 @@ export function WeekPage() {
       </div>
 
       {summary && <TotalsBar totals={summary.totals} />}
+      {summary && <WeekChart days={summary.days} />}
     </section>
   );
 }

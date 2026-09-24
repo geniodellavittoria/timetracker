@@ -69,6 +69,21 @@ export const settingsPeriodInputSchema = z.strictObject({
   workloadPercentX100: z.number().int().min(0).max(10000),
 });
 
+const halfDays = (min: number) => z
+  .number()
+  .min(min)
+  .max(365)
+  .refine((v) => Number.isInteger(v * 2), 'Nur ganze oder halbe Tage.');
+
+export const vacationAllowanceInputSchema = z.strictObject({
+  days: halfDays(0),
+  // Negative when last year was overbooked.
+  carryOverDays: halfDays(-365).default(0),
+});
+
+/** A Ferien year's start year, e.g. '2026' for 2026/27. */
+export const vacationYearSchema = z.coerce.number().int().min(1970).max(9998);
+
 export const groupBySchema = z.enum(['week', 'month', 'none']).default('none');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

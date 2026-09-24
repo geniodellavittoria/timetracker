@@ -6,6 +6,7 @@ import type { ByWeekday, IsoDate, SettingsPeriod, SettingsPeriodInput } from '@s
 import { ApiError } from '../api/client.ts';
 import { DurationText } from '../components/DurationText.tsx';
 import { HolidayTemplateCard } from '../components/HolidayTemplateCard.tsx';
+import { VacationCard } from '../components/VacationCard.tsx';
 import {
   useCreateSettingsPeriod, useDeleteSettingsPeriod, useSettings, useUpdateSettingsPeriod,
 } from '../api/queries.ts';
@@ -458,6 +459,8 @@ export function SettingsPage() {
         )}
         </div>
       </details>
+
+      <VacationCard />
 
       <details className="card settings-section" id="holiday-template-card">
         <summary>

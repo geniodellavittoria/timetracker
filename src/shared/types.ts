@@ -123,3 +123,37 @@ export interface RangeSummary {
   /** Balance across every entry ever recorded up to and including `to`. */
   cumulativeBalanceMinutes: number;
 }
+
+/**
+ * A Ferien allowance for one Ferien year, which runs 1 Aug – 31 Jul. `year` is
+ * the start year, so 2026 covers 2026-08-01 … 2027-07-31.
+ * Whole or half days.
+ */
+export interface VacationAllowance {
+  year: number;
+  days: number;
+  /** Carried over by hand from the previous year. Nothing is carried automatically. */
+  carryOverDays: number;
+  updatedAt: string;
+}
+
+export type VacationAllowanceInput = Pick<VacationAllowance, 'days' | 'carryOverDays'>;
+
+export interface VacationSummary {
+  year: number;
+  from: IsoDate;
+  to: IsoDate;
+  today: IsoDate;
+  /** null when no allowance is configured for this year. */
+  allowance: VacationAllowance | null;
+  /** days + carryOverDays, or 0 without an allowance. */
+  availableDays: number;
+  /** Ferien days up to and including `today`. */
+  takenDays: number;
+  /** Ferien days after `today`. */
+  plannedDays: number;
+  /** availableDays − taken − planned. Negative means overbooked. */
+  remainingDays: number;
+  takenDates: IsoDate[];
+  plannedDates: IsoDate[];
+}

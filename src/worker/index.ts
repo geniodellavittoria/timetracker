@@ -6,6 +6,7 @@ import { authRoutes } from './routes/auth.ts';
 import { entriesRoutes } from './routes/entries.ts';
 import { settingsRoutes } from './routes/settings.ts';
 import { summaryRoutes } from './routes/summary.ts';
+import { vacationRoutes } from './routes/vacation.ts';
 
 const app = new Hono<HonoEnv>();
 
@@ -20,6 +21,7 @@ api.route('/auth', authRoutes);
 api.route('/entries', entriesRoutes);
 api.route('/settings', settingsRoutes);
 api.route('/summary', summaryRoutes);
+api.route('/vacation', vacationRoutes);
 
 app.route('/api', api);
 

@@ -5,6 +5,7 @@ import {
 } from '@shared/dates.ts';
 import { dayTypeLabel } from '../components/DayTypeSelect.tsx';
 import { DurationText } from '../components/DurationText.tsx';
+import { DayTypeBar, MonthCharts } from '../components/charts/MonthCharts.tsx';
 import { PeriodNav } from '../components/PeriodNav.tsx';
 import { TotalsBar } from '../components/TotalsBar.tsx';
 import { useSummary } from '../api/queries.ts';
@@ -39,11 +40,8 @@ export function MonthPage() {
         <>
           <TotalsBar totals={summary.totals} />
 
-          <p className="muted small breakdown">
-            {(['normal', 'vacation', 'sick', 'holiday'] as const)
-              .map((t) => `${dayTypeLabel(t)} ${summary.totals.dayTypeCounts[t]}`)
-              .join(' · ')}
-          </p>
+          <DayTypeBar counts={summary.totals.dayTypeCounts} />
+          <MonthCharts summary={summary} today={today} />
 
           {summary.buckets.map((bucket) => (
             <details key={bucket.key} className="card week-bucket" open>

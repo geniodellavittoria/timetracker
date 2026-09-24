@@ -238,3 +238,13 @@ function max(...values: IsoDate[]): IsoDate {
 function min(...values: IsoDate[]): IsoDate {
   return values.reduce((a, b) => (a <= b ? a : b));
 }
+
+/**
+ * Running balance after each day, given the cumulative balance at the end of
+ * the range. Works backwards from `endBalanceMinutes`, so no second query for
+ * the balance before the range is needed.
+ */
+export function runningBalance(days: readonly DaySummary[], endBalanceMinutes: number): number[] {
+  let running = endBalanceMinutes - days.reduce((sum, day) => sum + day.balanceMinutes, 0);
+  return days.map((day) => (running += day.balanceMinutes));
+}

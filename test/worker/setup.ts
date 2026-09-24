@@ -28,6 +28,7 @@ beforeEach(async () => {
     env.DB.prepare('DELETE FROM sessions'),
     env.DB.prepare('DELETE FROM entries'),
     env.DB.prepare('DELETE FROM settings'),
+    env.DB.prepare('DELETE FROM vacation_allowances'),
     env.DB.prepare('DELETE FROM users'),
   ]);
   const { userId, cookie } = await registerTestUser();

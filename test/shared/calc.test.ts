@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   aggregateTotals, balanceMinutesFor, buildRangeSummary, cumulativeBalance,
-  distributeWeeklyTarget, isDayOff, periodFor, summarizeDay, targetMinutesFor, weeklyTargetMinutes,
+  distributeWeeklyTarget, isDayOff, periodFor, runningBalance, summarizeDay, targetMinutesFor, weeklyTargetMinutes,
   workedMinutesFor,
 } from '@shared/calc.ts';
 import type { ByWeekday, DayType, Settings, SettingsPeriod, TimeEntry } from '@shared/types.ts';
@@ -268,6 +268,17 @@ describe('cumulativeBalance', () => {
       entry(TUE, { leave: '16:00' }), // 480 worked, -24
     ];
     expect(cumulativeBalance(entries, fullTime)).toBe(36);
+  });
+});
+
+describe('runningBalance', () => {
+  it('works back from the end balance so the last value equals it', () => {
+    const days = [
+      summarizeDay(MON, entry(MON, { leave: '17:24' }), fullTime, SUN), // +60
+      summarizeDay(TUE, null, fullTime, SUN), // untracked, 0
+      summarizeDay(WED, entry(WED, { leave: '16:00' }), fullTime, SUN), // -24
+    ];
+    expect(runningBalance(days, 100)).toEqual([124, 124, 100]);
   });
 });
 

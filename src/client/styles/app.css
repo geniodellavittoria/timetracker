@@ -114,7 +114,6 @@ button.danger:hover:not(:disabled) { color: var(--negative); background: var(--n
 
 /* ---------- month view ---------- */
 
-.breakdown { margin: var(--space-3) 0; }
 
 .week-bucket { margin-bottom: var(--space-3); overflow: hidden; }
 .week-bucket > summary {
@@ -233,6 +232,97 @@ button.danger:hover:not(:disabled) { color: var(--negative); background: var(--n
 .period-row.is-current { font-weight: 600; }
 .period-actions { display: flex; gap: var(--space-2); }
 
+/* ---------- charts ---------- */
+
+.chart-card { padding: var(--space-3) var(--space-4); margin-top: var(--space-3); }
+.chart-title { font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin: 0 0 var(--space-3); }
+.chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3); }
+.chart-grid .chart-card { margin-top: 0; }
+figure.column-chart, figure.balance-line { margin: 0; }
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.chart-legend li, .legend-item { display: inline-flex; align-items: center; gap: var(--space-2); }
+.chart-legend strong { color: var(--text); }
+.legend-swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.legend-empty { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--border-strong); }
+.legend-target { width: 14px; height: 2px; background: var(--text); flex: none; }
+.legend-overbooked, .legend-overbooked strong { color: var(--negative); }
+
+/* Stacked bar: segments separated by a 2px surface gap, rounded only at the ends. */
+.stacked-track {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.stacked-segment { flex: none; min-width: 3px; }
+.stacked-bar.is-compact { align-self: center; }
+/* The badge is already surface-2, so the empty track needs its own tone there. */
+.stacked-bar.is-compact .stacked-track { width: 48px; height: 6px; background: var(--border-strong); }
+.day-type-bar { margin: var(--space-3) 0; }
+
+/* Columns grow from one baseline; the target is a 2px tick across the column. */
+.column-plot {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  height: 140px;
+  padding-left: 2rem;
+  border-bottom: 1px solid var(--border-strong);
+}
+.column-grid { position: absolute; left: 2rem; right: 0; height: 0; border-top: 1px solid var(--border); }
+.column-grid-label {
+  position: absolute;
+  right: calc(100% + var(--space-1));
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.column { position: relative; flex: 1; height: 100%; display: flex; justify-content: center; align-items: flex-end; }
+.column:hover { background: color-mix(in srgb, var(--surface-hover) 60%, transparent); }
+.column-bar { position: relative; width: min(24px, 60%); border-radius: 4px 4px 0 0; }
+.column-target { position: absolute; width: min(36px, 80%); height: 2px; background: var(--text); transform: translateY(1px); }
+.column-labels { display: flex; padding-left: 2rem; margin-top: var(--space-1); }
+.column-labels span { flex: 1; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
+
+.balance-plot { position: relative; height: 140px; }
+.balance-plot svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.balance-zero { stroke: var(--border-strong); stroke-width: 1; }
+.balance-path { fill: none; stroke: var(--chart-normal); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.balance-hit { fill: transparent; }
+.balance-hit:hover { fill: color-mix(in srgb, var(--surface-hover) 60%, transparent); }
+.balance-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--chart-normal);
+  box-shadow: 0 0 0 2px var(--surface);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.balance-labels { display: flex; justify-content: space-between; margin-top: var(--space-2); }
+
+/* Ferien */
+.vacation-badge { align-items: center; text-decoration: none; color: inherit; }
+.vacation-badge:hover { border-color: var(--border-strong); }
+.vacation-year-nav { margin-bottom: var(--space-3); }
+/* Clears the sticky header when the badge link scrolls the section into view. */
+#vacation-card { scroll-margin-top: 6rem; }
+.section-body .stacked-bar { margin-bottom: var(--space-4); }
+
 /* ---------- mobile ---------- */
 
 @media (max-width: 720px) {
@@ -255,4 +345,6 @@ button.danger:hover:not(:disabled) { color: var(--negative); background: var(--n
   .month-day-type { display: none; }
 
   .weekday-row { grid-template-columns: 5.5rem 7rem minmax(0, 1fr); }
+
+  .chart-grid { grid-template-columns: minmax(0, 1fr); }
 }

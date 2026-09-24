@@ -4,6 +4,7 @@ import {
   todayIsoDateLocal,
 } from '@shared/dates.ts';
 import { BalanceBadge } from './components/BalanceBadge.tsx';
+import { VacationBadge } from './components/VacationBadge.tsx';
 import { useTheme } from './hooks/useTheme.ts';
 import { LoginPage } from './pages/LoginPage.tsx';
 import { MonthPage } from './pages/MonthPage.tsx';
@@ -46,6 +47,7 @@ function AuthenticatedApp() {
         </nav>
         <span className="spacer" />
         <CumulativeBalance />
+        <VacationBadge />
         <div className="header-account">
           {user && <span className="faint small">{user.email}</span>}
           <ThemeToggle />

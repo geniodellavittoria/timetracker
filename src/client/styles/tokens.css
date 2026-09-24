@@ -39,6 +39,13 @@
 
   --shadow-sm: 0 1px 2px rgb(16 20 28 / 8%);
   --shadow-md: 0 4px 16px rgb(16 20 28 / 10%);
+
+  /* Chart series, one per day type, in this fixed order (checked for
+     colour-blind separation as adjacent pairs). Text never wears these. */
+  --chart-normal: #2a78d6;
+  --chart-vacation: #eb6834;
+  --chart-sick: #1baf7a;
+  --chart-holiday: #eda100;
 }
 
 :root[data-theme='dark'] {
@@ -68,4 +75,9 @@
 
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%);
   --shadow-md: 0 4px 16px rgb(0 0 0 / 40%);
+
+  --chart-normal: #3987e5;
+  --chart-vacation: #d95926;
+  --chart-sick: #199e70;
+  --chart-holiday: #c98500;
 }
