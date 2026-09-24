@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
-  AuthUser, GroupBy, IsoDate, RangeSummary, Settings, SettingsPeriod, SettingsPeriodInput, TimeEntry,
+  AuthUser, DayType, GroupBy, IsoDate, RangeSummary, Settings, SettingsPeriod, SettingsPeriodInput, TimeEntry,
   TimeEntryInput, VacationAllowance, VacationAllowanceInput, VacationSummary,
 } from '@shared/types.ts';
 import { api } from './client.ts';
@@ -165,22 +165,34 @@ export function useEntriesInRange({ from, to }: { from: IsoDate; to: IsoDate }) 
   });
 }
 
+/** After a bulk write: raw entries, every summary and the Ferien counts are all stale. */
+function invalidateEntries(qc: ReturnType<typeof useQueryClient>) {
+  void qc.invalidateQueries({ queryKey: ['entries'] });
+  void qc.invalidateQueries({ queryKey: ['summary'] });
+  void qc.invalidateQueries({ queryKey: ['vacation'] });
+}
+
 /**
- * Applies a holiday template: one PUT per date, run in parallel since a
- * canton/year is at most a few dozen dates. Callers are expected to have
- * already filtered out dates that already carry an entry — this never
- * overwrites existing data itself, it just writes what it's given.
+ * Writes many special days at once (a holiday template, a Ferien range): one
+ * PUT per date, run in parallel since it's at most a few dozen dates. Callers
+ * decide which dates to write — anything given here is overwritten.
  */
-export function useApplyHolidays() {
+export function useApplySpecialDays() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (dates: { date: IsoDate; name: string }[]) => Promise.all(
-      dates.map(({ date, name }) =>
-        api.put<TimeEntry>(`/entries/${date}`, { dayType: 'holiday', blocks: [], note: name } satisfies TimeEntryInput)),
+    mutationFn: (days: { date: IsoDate; dayType: Exclude<DayType, 'normal'>; note: string | null }[]) => Promise.all(
+      days.map(({ date, dayType, note }) =>
+        api.put<TimeEntry>(`/entries/${date}`, { dayType, blocks: [], note } satisfies TimeEntryInput)),
     ),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['entries'] });
-      void qc.invalidateQueries({ queryKey: ['summary'] });
-    },
+    onSuccess: () => invalidateEntries(qc),
+  });
+}
+
+/** Deletes whole days in parallel, e.g. removing a Ferien range. */
+export function useDeleteEntries() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (dates: IsoDate[]) => Promise.all(dates.map((date) => api.del(`/entries/${date}`))),
+    onSuccess: () => invalidateEntries(qc),
   });
 }

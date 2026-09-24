@@ -321,6 +321,9 @@ figure.column-chart, figure.balance-line { margin: 0; }
 .vacation-year-nav { margin-bottom: var(--space-3); }
 /* Clears the sticky header when the badge link scrolls the section into view. */
 #vacation-card { scroll-margin-top: 6rem; }
+.vacation-range { margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--border); }
+.checkbox-row { display: inline-flex; align-items: center; gap: var(--space-2); margin: var(--space-3) 0; font-size: 0.9rem; }
+.vacation-range-preview { margin: 0 0 var(--space-2); }
 .section-body .stacked-bar { margin-bottom: var(--space-4); }
 
 /* ---------- mobile ---------- */

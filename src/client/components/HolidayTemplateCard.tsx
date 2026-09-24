@@ -3,7 +3,7 @@ import { formatIsoDateDMY, todayIsoDateLocal } from '@shared/dates.ts';
 import { CANTONS, holidaysForCanton } from '@shared/holidays.ts';
 import type { CantonCode } from '@shared/holidays.ts';
 import { ApiError } from '../api/client.ts';
-import { useApplyHolidays, useEntriesInRange } from '../api/queries.ts';
+import { useApplySpecialDays, useEntriesInRange } from '../api/queries.ts';
 
 const STORAGE_KEY = 'timetracker.holidayCanton';
 
@@ -45,7 +45,7 @@ export function HolidayTemplateCard() {
   const from = `${year}-01-01`;
   const to = `${year}-12-31`;
   const { data: existingEntries } = useEntriesInRange({ from, to });
-  const apply = useApplyHolidays();
+  const apply = useApplySpecialDays();
 
   const candidates = useMemo(() => (canton ? holidaysForCanton(canton, year) : []), [canton, year]);
   const existingDates = useMemo(
@@ -69,7 +69,7 @@ export function HolidayTemplateCard() {
 
   const applyTemplate = () => {
     apply.mutate(
-      toCreate.map(({ date, name }) => ({ date, name })),
+      toCreate.map(({ date, name }) => ({ date, dayType: 'holiday' as const, note: name })),
       { onSuccess: () => setApplied(true) },
     );
   };

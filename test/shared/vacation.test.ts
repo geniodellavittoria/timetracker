@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { formatVacationYear, summarizeVacation, vacationYearOf, vacationYearRange } from '@shared/vacation.ts';
+import {
+  formatVacationYear, planVacationRange, summarizeVacation, vacationYearOf, vacationYearRange,
+} from '@shared/vacation.ts';
 import type { ByWeekday, DayType, Settings, TimeEntry, VacationAllowance } from '@shared/types.ts';
 
 function period(effectiveFrom: string, targets: ByWeekday<number>, id = 1) {
@@ -104,5 +106,49 @@ describe('summarizeVacation', () => {
   it('counts against 0 without an allowance', () => {
     const s = summarizeVacation({ year: 2026, allowance: null, entries: [day('2026-08-17')], settings: fullTime, today: '2026-08-17' });
     expect(s).toMatchObject({ allowance: null, availableDays: 0, takenDays: 1, remainingDays: -1 });
+  });
+});
+
+describe('planVacationRange', () => {
+  // Mon 2026-08-17 … Sun 2026-08-23.
+  const week = { from: '2026-08-17', to: '2026-08-23' };
+  const existing = [
+    day('2026-08-17', 'normal'),
+    day('2026-08-18', 'holiday'),
+    day('2026-08-19', 'sick'),
+    day('2026-08-20'), // already Ferien
+    day('2026-08-22'), // Ferien on a Saturday
+  ];
+
+  it('books empty workdays only and never touches other day types', () => {
+    const plan = planVacationRange({ ...week, entries: existing, settings: fullTime, overwriteWork: false });
+    expect(plan.book).toEqual(['2026-08-21']);
+    expect(plan.skipped).toEqual([
+      { date: '2026-08-17', reason: 'work' },
+      { date: '2026-08-18', reason: 'holiday' },
+      { date: '2026-08-19', reason: 'sick' },
+      { date: '2026-08-20', reason: 'already_vacation' },
+      { date: '2026-08-22', reason: 'already_vacation' },
+      { date: '2026-08-23', reason: 'day_off' },
+    ]);
+  });
+
+  it('overwrites Arbeit entries only when asked', () => {
+    const plan = planVacationRange({ ...week, entries: existing, settings: fullTime, overwriteWork: true });
+    expect(plan.book).toEqual(['2026-08-17', '2026-08-21']);
+  });
+
+  it('lists every Ferien entry for removal, days off included', () => {
+    const plan = planVacationRange({ ...week, entries: existing, settings: fullTime, overwriteWork: false });
+    expect(plan.remove).toEqual(['2026-08-20', '2026-08-22']);
+  });
+
+  it('skips a day that a Pensum change turns into a day off', () => {
+    const settings: Settings = [
+      period('2000-01-01', [504, 504, 504, 504, 504, 0, 0], 1),
+      period('2026-08-19', [504, 504, 504, 504, 0, 0, 0], 2),
+    ];
+    const plan = planVacationRange({ ...week, entries: [], settings, overwriteWork: false });
+    expect(plan.book).toEqual(['2026-08-17', '2026-08-18', '2026-08-19', '2026-08-20']);
   });
 });

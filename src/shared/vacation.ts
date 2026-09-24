@@ -1,4 +1,5 @@
 import { targetMinutesFor } from './calc.ts';
+import { eachDateInRange } from './dates.ts';
 import type { IsoDate, Settings, TimeEntry, VacationAllowance, VacationSummary } from './types.ts';
 
 /** The Ferien year a date falls in, keyed by its start year: 1 Aug onward is that year, before it the previous one. */
@@ -53,4 +54,48 @@ export function summarizeVacation(args: {
     takenDates,
     plannedDates,
   };
+}
+
+export type VacationSkipReason = 'day_off' | 'already_vacation' | 'work' | 'holiday' | 'sick';
+
+export interface VacationRangePlan {
+  /** Dates that become Ferien entries when booking. */
+  book: IsoDate[];
+  /** Dates left alone when booking, with why. */
+  skipped: { date: IsoDate; reason: VacationSkipReason }[];
+  /** Existing Ferien entries in the range — what "remove" deletes. */
+  remove: IsoDate[];
+}
+
+/**
+ * What booking or removing Ferien over `from`–`to` would do. Only workdays
+ * are booked (a day off needs no Ferien); Feiertag and Krank entries are
+ * never touched; Arbeit entries only with `overwriteWork`.
+ */
+export function planVacationRange(args: {
+  from: IsoDate;
+  to: IsoDate;
+  entries: readonly TimeEntry[];
+  settings: Settings;
+  overwriteWork: boolean;
+}): VacationRangePlan {
+  const { from, to, entries, settings, overwriteWork } = args;
+  const byDate = new Map(entries.map((e) => [e.date, e]));
+  const plan: VacationRangePlan = { book: [], skipped: [], remove: [] };
+
+  for (const date of eachDateInRange(from, to)) {
+    const entry = byDate.get(date);
+    if (entry?.dayType === 'vacation') plan.remove.push(date);
+
+    const reason: VacationSkipReason | null =
+      entry?.dayType === 'vacation' ? 'already_vacation'
+      : entry?.dayType === 'holiday' ? 'holiday'
+      : entry?.dayType === 'sick' ? 'sick'
+      : targetMinutesFor(date, settings) === 0 ? 'day_off'
+      : entry?.dayType === 'normal' && !overwriteWork ? 'work'
+      : null;
+    if (reason) plan.skipped.push({ date, reason });
+    else plan.book.push(date);
+  }
+  return plan;
 }
