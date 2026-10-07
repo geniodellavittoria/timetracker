@@ -1,0 +1,36 @@
+name: Backup
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+# Never run two exports/uploads at once.
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Export D1 and upload to file server
+        run: bash scripts/backup-to-sftp.sh nightly
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BACKUP_SSH_KEY: ${{ secrets.BACKUP_SSH_KEY }}
+          BACKUP_SSH_KNOWN_HOSTS: ${{ secrets.BACKUP_SSH_KNOWN_HOSTS }}
+          BACKUP_SFTP_HOST: ${{ secrets.BACKUP_SFTP_HOST }}
+          BACKUP_SFTP_PORT: ${{ secrets.BACKUP_SFTP_PORT }}
+          BACKUP_SFTP_USER: ${{ secrets.BACKUP_SFTP_USER }}
+          BACKUP_SFTP_PATH: ${{ secrets.BACKUP_SFTP_PATH }}

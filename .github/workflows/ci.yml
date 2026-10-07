@@ -65,6 +65,21 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # Deploy applies pending migrations to production, so take a restore
+      # point and an off-site dump first. Fails the job (no deploy) if the
+      # backup can't be made.
+      - name: Back up production database
+        run: bash scripts/backup-to-sftp.sh pre-deploy-${{ github.sha }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BACKUP_SSH_KEY: ${{ secrets.BACKUP_SSH_KEY }}
+          BACKUP_SSH_KNOWN_HOSTS: ${{ secrets.BACKUP_SSH_KNOWN_HOSTS }}
+          BACKUP_SFTP_HOST: ${{ secrets.BACKUP_SFTP_HOST }}
+          BACKUP_SFTP_PORT: ${{ secrets.BACKUP_SFTP_PORT }}
+          BACKUP_SFTP_USER: ${{ secrets.BACKUP_SFTP_USER }}
+          BACKUP_SFTP_PATH: ${{ secrets.BACKUP_SFTP_PATH }}
+
       - name: Deploy
         run: npm run deploy
         env:

@@ -132,6 +132,68 @@ Then in a browser:
 
 ## Backups
 
+Three layers, from most to least recent:
+
+| Layer | Covers | Kept for |
+|---|---|---|
+| D1 Time Travel (built in, always on) | Any minute | 30 days (Workers Paid) / 7 days (Free) |
+| Pre-deploy dump (`ci.yml`, before migrations run) | State right before each deploy | Server retention |
+| Nightly dump (`backup.yml`, 02:00 UTC) | Daily state, outside Cloudflare | Server retention |
+
+Both dumps are made by `scripts/backup-to-sftp.sh` and uploaded as
+`timetracker-<UTC timestamp>-<label>.sql.gz` to the file server. The repo is
+public, so dumps are **never** stored as Actions artifacts. A failed
+pre-deploy backup blocks the deploy.
+
+### Setup
+
+Repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|---|---|
+| `BACKUP_SFTP_HOST` | File server hostname |
+| `BACKUP_SFTP_PORT` | Optional, defaults to 22 |
+| `BACKUP_SFTP_USER` | Dedicated backup user |
+| `BACKUP_SFTP_PATH` | Existing directory to upload into |
+| `BACKUP_SSH_KEY` | Private key (`ssh-keygen -t ed25519 -N ''`), public half in the user's `authorized_keys` |
+| `BACKUP_SSH_KNOWN_HOSTS` | Output of `ssh-keyscan -p <port> <host>` — verify the fingerprint |
+
+On the server: give the backup user write access to that directory only
+(ideally chrooted, SFTP-only), and prune old files there, e.g. a daily cron
+`find /path/to/backups -name 'timetracker-*.sql.gz' -mtime +180 -delete`.
+
+Run **Actions → Backup → Run workflow** once to confirm the setup.
+
+### Restore
+
+**Within the Time Travel window** — preferred, restores in place:
+
 ```bash
-npx wrangler d1 export timetracker --remote --output backup.sql
+npx wrangler d1 time-travel restore timetracker --timestamp=2026-10-07T08:00:00Z
+# or the exact pre-deploy point, printed as "bookmark" in that deploy's log:
+npx wrangler d1 time-travel restore timetracker --bookmark=<bookmark>
+```
+
+**From a dump** — for when the database itself is gone. The `package.json`
+scripts and the backup script refer to it by name, so recreate it as
+`timetracker`:
+
+```bash
+gunzip timetracker-<...>.sql.gz
+npx wrangler d1 create timetracker
+# put the new id into wrangler.jsonc (database_id), then:
+npx wrangler d1 execute timetracker --remote --file timetracker-<...>.sql
+npm run deploy
+```
+
+The dump includes the `d1_migrations` table, so `db:remote` won't re-run
+migrations against restored data.
+
+To inspect a dump without touching production or your dev data, load it into
+a scratch local database and query it there:
+
+```bash
+npx wrangler d1 execute timetracker --local --persist-to .wrangler/restore-check --file <dump>.sql
+npx wrangler d1 execute timetracker --local --persist-to .wrangler/restore-check \
+  --command "select count(*) from entries"
 ```
