@@ -11,7 +11,6 @@ export type IssueCode =
   | 'invalid_date'
   | 'invalid_time'
   | 'times_required_for_normal_day'
-  | 'times_not_allowed_for_special_day'
   | 'leave_not_after_arrival'
   | 'break_negative'
   | 'break_exceeds_span'
@@ -51,12 +50,9 @@ export const entryInputSchema = z.discriminatedUnion('dayType', [
   }),
   z.strictObject({
     dayType: z.enum(['vacation', 'sick', 'holiday']),
-    // Optional on the wire (the client never sends it for a special day), but
-    // always present once parsed, so `TimeEntryInput.blocks` is never
-    // undefined regardless of day type. Deliberately not length-capped here —
-    // shape only; `validateEntryInput` is what rejects a special day
-    // carrying blocks, with the specific `times_not_allowed_for_special_day`
-    // code rather than a generic schema error.
+    // Extra time worked on the day, on top of the credited target. Optional
+    // on the wire, but always present once parsed, so `TimeEntryInput.blocks`
+    // is never undefined regardless of day type.
     blocks: z.array(blockInputSchema).optional().default([]),
     note: z.string().max(500).nullable().default(null),
   }),
@@ -124,16 +120,9 @@ export function validateEntryInput(input: TimeEntryInput): ValidationIssue[] {
     return [{ path: 'dayType', code: 'invalid_date', message: 'Unbekannter Tagestyp.' }];
   }
 
-  if (input.dayType !== 'normal') {
-    if (input.blocks.length > 0) {
-      issues.push({
-        path: 'dayType',
-        code: 'times_not_allowed_for_special_day',
-        message: 'Ferien-, Krankheits- und Feiertage dürfen keine Zeiten enthalten.',
-      });
-    }
-    return issues;
-  }
+  // A special day needs no blocks; any it has are extra time, checked below
+  // exactly like a normal day's.
+  if (input.dayType !== 'normal' && input.blocks.length === 0) return issues;
 
   if (input.blocks.length === 0) {
     return [{

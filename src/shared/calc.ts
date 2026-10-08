@@ -1,12 +1,12 @@
 import {
   addDays, compareDates, eachDateInRange, endOfIsoWeek, endOfMonth, formatMonthLabel,
-  formatWeekLabel, isoWeekKey, monthKey, weekdayOf,
+  formatWeekLabel, isoWeekKey, isoWeekKeyToRange, isoWeeksInYear, isoWeekOf, monthKey, weekdayOf,
 } from './dates.ts';
 import { parseTimeOfDay } from './time.ts';
 import { DAY_TYPES } from './types.ts';
 import type {
   Bucket, ByWeekday, DaySummary, DayType, GroupBy, IsoDate, RangeSummary, Settings,
-  SettingsPeriod, TimeEntry, Totals,
+  SettingsPeriod, TimeEntry, Totals, YearComparison, YearComparisonResponse, YearWeekPoint,
 } from './types.ts';
 
 /**
@@ -40,9 +40,8 @@ export function isDayOff(date: IsoDate, settings: Settings): boolean {
 }
 
 /**
- * Worked minutes for an entry — the sum across every block on a `normal` day
- * (one office morning plus a home-office evening is two blocks, added
- * together).
+ * The sum across an entry's time blocks (one office morning plus a home-office
+ * evening is two blocks, added together).
  *
  * Each block's RAW span minus its break is used, which may be negative while
  * the user is still typing a block. Returning the raw number lets the live
@@ -50,20 +49,28 @@ export function isDayOff(date: IsoDate, settings: Settings): boolean {
  * `validateEntryInput` is what blocks the save. A block that isn't parseable
  * yet (still empty, mid-edit) contributes 0 rather than aborting the sum, so
  * finished blocks keep counting while another one is still being typed.
- *
- * Every other day type counts as that weekday's target, so its balance is
- * exactly 0 — a vacation day neither earns nor costs overtime. On a day off
- * (target 0) it contributes nothing, which is correct: taking vacation on a day
- * you don't work shouldn't consume a day's worth of hours.
  */
-export function workedMinutesFor(entry: TimeEntry, settings: Settings): number {
-  if (entry.dayType !== 'normal') return targetMinutesFor(entry.date, settings);
+export function blockMinutes(entry: Pick<TimeEntry, 'blocks'>): number {
   return entry.blocks.reduce((sum, block) => {
     const arrival = parseTimeOfDay(block.arrival);
     const leave = parseTimeOfDay(block.leave);
     if (arrival === null || leave === null) return sum;
     return sum + (leave - arrival - (block.breakMinutes ?? 0));
   }, 0);
+}
+
+/**
+ * Worked minutes for an entry. A `normal` day is its blocks.
+ *
+ * Every other day type counts as that weekday's target, so without blocks its
+ * balance is exactly 0 — a vacation day neither earns nor costs overtime. On a
+ * day off (target 0) that credit is nothing, which is correct: taking vacation
+ * on a day you don't work shouldn't consume a day's worth of hours. Time
+ * actually worked on such a day (blocks) comes on top, as overtime.
+ */
+export function workedMinutesFor(entry: TimeEntry, settings: Settings): number {
+  const credit = entry.dayType === 'normal' ? 0 : targetMinutesFor(entry.date, settings);
+  return credit + blockMinutes(entry);
 }
 
 export function balanceMinutesFor(entry: TimeEntry, settings: Settings): number {
@@ -185,6 +192,62 @@ export function buildRangeSummary(args: {
     buckets: groupBy === 'none' ? [] : bucketDays(days, groupBy, from, to),
     days,
     cumulativeBalanceMinutes,
+  };
+}
+
+/**
+ * Worked time per ISO week for every ISO week-year that has entries, so the
+ * same week can be compared across years. Only time blocks count as worked:
+ * absences are credited as target by `workedMinutesFor`, which would make a
+ * Ferien week look like a full working week. Extra time logged on an absence
+ * day is real work, so it does count.
+ */
+export function buildYearComparison(args: {
+  entries: readonly TimeEntry[];
+  settings: Settings;
+  today: IsoDate;
+}): YearComparisonResponse {
+  const { entries, settings, today } = args;
+  const byDate = new Map(entries.map((e) => [e.date, e]));
+  const years = [...new Set(entries.map((e) => isoWeekOf(e.date).year))].sort((a, b) => a - b);
+
+  return {
+    today,
+    years: years.map((year): YearComparison => {
+      const lastWeek = isoWeeksInYear(year);
+      const from = isoWeekKeyToRange(`${year}-W01`).from;
+      const to = isoWeekKeyToRange(`${year}-W${lastWeek}`).to;
+
+      const weeks: YearWeekPoint[] = Array.from({ length: lastWeek }, (_, i) => ({
+        week: i + 1,
+        workedMinutes: null,
+        targetMinutes: 0,
+        absenceDays: 0,
+      }));
+      let balanceMinutes = 0;
+
+      for (const date of eachDateInRange(from, to)) {
+        const entry = byDate.get(date) ?? null;
+        const day = summarizeDay(date, entry, settings, today);
+        const point = weeks[isoWeekOf(date).week - 1]!;
+        point.targetMinutes += day.targetMinutes;
+        balanceMinutes += day.balanceMinutes;
+        if (entry && entry.blocks.length > 0) point.workedMinutes = (point.workedMinutes ?? 0) + blockMinutes(entry);
+        if (entry && entry.dayType !== 'normal') point.absenceDays += 1;
+      }
+
+      const worked = weeks.filter((w) => w.workedMinutes !== null);
+      return {
+        year,
+        weeks,
+        totals: {
+          workedMinutes: worked.reduce((sum, w) => sum + w.workedMinutes!, 0),
+          absenceDays: weeks.reduce((sum, w) => sum + w.absenceDays, 0),
+          balanceMinutes,
+          workedWeekCount: worked.length,
+        },
+      };
+    }),
   };
 }
 

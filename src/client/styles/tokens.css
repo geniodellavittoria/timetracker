@@ -46,6 +46,16 @@
   --chart-vacation: #eb6834;
   --chart-sick: #1baf7a;
   --chart-holiday: #eda100;
+
+  /* Generic categorical series (e.g. one per year), same validated order. */
+  --chart-series-1: #2a78d6;
+  --chart-series-2: #eb6834;
+  --chart-series-3: #1baf7a;
+  --chart-series-4: #eda100;
+  --chart-series-5: #e87ba4;
+  --chart-series-6: #008300;
+  --chart-series-7: #4a3aa7;
+  --chart-series-8: #e34948;
 }
 
 :root[data-theme='dark'] {
@@ -80,4 +90,13 @@
   --chart-vacation: #d95926;
   --chart-sick: #199e70;
   --chart-holiday: #c98500;
+
+  --chart-series-1: #3987e5;
+  --chart-series-2: #d95926;
+  --chart-series-3: #199e70;
+  --chart-series-4: #c98500;
+  --chart-series-5: #d55181;
+  --chart-series-6: #008300;
+  --chart-series-7: #9085e9;
+  --chart-series-8: #e66767;
 }

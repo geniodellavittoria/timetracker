@@ -120,7 +120,9 @@ input[type='time'], input[type='number'] { font-variant-numeric: tabular-nums; }
 
 /* One wrapping unit, so account controls move to a second line together on
    a narrow screen instead of each drifting off independently mid-row. */
-.header-account { display: flex; align-items: center; gap: var(--space-3); }
+.header-account { display: flex; align-items: center; gap: var(--space-3); min-width: 0; max-width: 100%; }
+/* A long address shrinks with an ellipsis instead of pushing "Abmelden" off a phone screen. */
+.header-email { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .theme-toggle { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .theme-toggle button { border-color: transparent; padding: var(--space-1) var(--space-2); line-height: 1; }

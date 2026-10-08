@@ -315,6 +315,68 @@ figure.column-chart, figure.balance-line { margin: 0; }
 }
 .balance-labels { display: flex; justify-content: space-between; margin-top: var(--space-2); }
 
+/* Year comparison: lines per year over KW 1–53. Labels, dots, tooltip are HTML on top. */
+figure.year-lines { margin: 0; }
+.year-lines-frame { position: relative; padding-left: 2.5rem; }
+.year-lines-area { position: relative; }
+.year-lines-plot { position: relative; height: 220px; cursor: crosshair; touch-action: pan-y; }
+.year-lines-plot:focus-visible { outline: 2px solid var(--border-strong); outline-offset: 2px; }
+.year-lines-plot svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.year-lines-grid { stroke: var(--border); stroke-width: 1; }
+.year-lines-target { fill: none; stroke: var(--text-muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.year-lines-path { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.year-lines-grid-label {
+  position: absolute;
+  left: 0;
+  width: 2rem;
+  text-align: right;
+  transform: translateY(-50%);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+.year-lines-crosshair { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border-strong); pointer-events: none; }
+.year-lines-dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--surface);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.year-lines-tooltip {
+  position: absolute;
+  top: 0;
+  z-index: 1;
+  display: grid;
+  gap: var(--space-1);
+  margin-left: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.year-lines-tooltip.is-left { transform: translateX(calc(-100% - 2 * var(--space-3))); }
+.year-lines-tooltip-row { display: flex; align-items: center; gap: var(--space-2); }
+.year-lines-x { position: relative; height: 1.2rem; margin: var(--space-1) 0 0 2.5rem; }
+.year-lines-x span { position: absolute; transform: translateX(-50%); color: var(--text-muted); white-space: nowrap; }
+.year-legend { align-items: center; margin: 0 0 var(--space-3); }
+.year-toggle { color: var(--text); }
+.year-toggle.is-off { color: var(--text-faint); }
+.year-toggle.is-off .legend-swatch { background: transparent !important; box-shadow: inset 0 0 0 1.5px var(--border-strong); }
+.year-legend-target { display: inline-flex; align-items: center; gap: var(--space-2); }
+.year-legend-dash { background: repeating-linear-gradient(90deg, var(--text-muted) 0 4px, transparent 4px 7px); }
+.year-note { margin: var(--space-2) 0 0; }
+.year-table-scroll { overflow-x: auto; }
+.year-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.year-table th, .year-table td { padding: var(--space-2) var(--space-3); text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border); }
+.year-table th:first-child { text-align: left; }
+.year-table thead th { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+.year-table tbody tr:last-child > * { border-bottom: none; }
+
 /* Ferien */
 .vacation-badge { align-items: center; text-decoration: none; color: inherit; }
 .vacation-badge:hover { border-color: var(--border-strong); }
@@ -350,4 +412,15 @@ figure.column-chart, figure.balance-line { margin: 0; }
   .weekday-row { grid-template-columns: 5.5rem 7rem minmax(0, 1fr); }
 
   .chart-grid { grid-template-columns: minmax(0, 1fr); }
+  .year-lines-plot { height: 180px; }
+
+  .header nav { flex-wrap: wrap; }
+  .header nav a { padding: var(--space-2); }
+
+  /* Title row on top; date jump and "Heute" share a second row. */
+  .period-nav { flex-wrap: wrap; }
+  .period-nav h2 { flex: 1; text-align: center; }
+  .period-nav .spacer { flex-basis: 100%; height: 0; }
+  .period-jump { flex: 1; }
+  .period-jump input { width: 100%; }
 }

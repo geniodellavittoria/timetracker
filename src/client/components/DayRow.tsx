@@ -75,58 +75,24 @@ export function DayRow({
               />
             </label>
             {isSpecial ? (
-              <span className="muted counts-as">
-                zählt als Ziel · <DurationText minutes={day.targetMinutes} />
-              </span>
+              <div className="blocks">
+                <span className="muted counts-as">
+                  zählt als Ziel · <DurationText minutes={day.targetMinutes} />
+                </span>
+                {form.draft.blocks.length === 0 ? (
+                  <button type="button" className="ghost small" onClick={form.addBlock}>
+                    + Zusätzliche Zeit erfassen
+                  </button>
+                ) : (
+                  <>
+                    <span className="muted small">Zusätzlich gearbeitet:</span>
+                    <BlockEditor form={form} minBlocks={0} />
+                  </>
+                )}
+              </div>
             ) : (
               <div className="blocks">
-                {form.draft.blocks.map((block, i) => {
-                  // A single block keeps the plain labels (matches the old
-                  // one-block-per-day UI); a second block onward disambiguates
-                  // them, since two inputs sharing the label "Kommen" would be
-                  // indistinguishable to a screen reader.
-                  const suffix = form.draft.blocks.length > 1 ? ` (Block ${i + 1})` : '';
-                  return (
-                    <div key={i} className="block-row">
-                      <TimeField
-                        label={`Kommen${suffix}`}
-                        value={block.arrival}
-                        invalid={!!form.issueFor(`blocks.${i}.arrival`)}
-                        onChange={(arrival) => form.updateBlock(i, { arrival })}
-                        onBlur={form.flush}
-                      />
-                      <span className="faint arrow">→</span>
-                      <TimeField
-                        label={`Gehen${suffix}`}
-                        value={block.leave}
-                        invalid={!!form.issueFor(`blocks.${i}.leave`)}
-                        onChange={(leave) => form.updateBlock(i, { leave })}
-                        onBlur={form.flush}
-                      />
-                      <BreakField
-                        label={`Pause in Minuten${suffix}`}
-                        value={block.breakMinutes}
-                        invalid={!!form.issueFor(`blocks.${i}.breakMinutes`)}
-                        onChange={(breakMinutes) => form.updateBlock(i, { breakMinutes })}
-                        onBlur={form.flush}
-                      />
-                      {form.draft.blocks.length > 1 && (
-                        <button
-                          type="button"
-                          className="ghost small danger"
-                          aria-label={`Zeitblock ${i + 1} entfernen`}
-                          title="Zeitblock entfernen"
-                          onClick={() => form.removeBlock(i)}
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
-                <button type="button" className="ghost small" onClick={form.addBlock}>
-                  + Weiterer Zeitblock
-                </button>
+                <BlockEditor form={form} minBlocks={1} />
               </div>
             )}
           </>
@@ -157,6 +123,65 @@ export function DayRow({
         <p className="day-error" role="alert">{form.issues[0]!.message}</p>
       )}
     </div>
+  );
+}
+
+/**
+ * The time blocks of a day, plus "add block". `minBlocks` is how many must
+ * stay: a normal day needs one, a special day's extra time can be removed
+ * entirely.
+ */
+function BlockEditor({ form, minBlocks }: { form: ReturnType<typeof useDayForm>; minBlocks: number }) {
+  return (
+    <>
+      {form.draft.blocks.map((block, i) => {
+        // A single block keeps the plain labels (matches the old
+        // one-block-per-day UI); a second block onward disambiguates
+        // them, since two inputs sharing the label "Kommen" would be
+        // indistinguishable to a screen reader.
+        const suffix = form.draft.blocks.length > 1 ? ` (Block ${i + 1})` : '';
+        return (
+          <div key={i} className="block-row">
+            <TimeField
+              label={`Kommen${suffix}`}
+              value={block.arrival}
+              invalid={!!form.issueFor(`blocks.${i}.arrival`)}
+              onChange={(arrival) => form.updateBlock(i, { arrival })}
+              onBlur={form.flush}
+            />
+            <span className="faint arrow">→</span>
+            <TimeField
+              label={`Gehen${suffix}`}
+              value={block.leave}
+              invalid={!!form.issueFor(`blocks.${i}.leave`)}
+              onChange={(leave) => form.updateBlock(i, { leave })}
+              onBlur={form.flush}
+            />
+            <BreakField
+              label={`Pause in Minuten${suffix}`}
+              value={block.breakMinutes}
+              invalid={!!form.issueFor(`blocks.${i}.breakMinutes`)}
+              onChange={(breakMinutes) => form.updateBlock(i, { breakMinutes })}
+              onBlur={form.flush}
+            />
+            {form.draft.blocks.length > minBlocks && (
+              <button
+                type="button"
+                className="ghost small danger"
+                aria-label={`Zeitblock ${i + 1} entfernen`}
+                title="Zeitblock entfernen"
+                onClick={() => form.removeBlock(i)}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        );
+      })}
+      <button type="button" className="ghost small" onClick={form.addBlock}>
+        + Weiterer Zeitblock
+      </button>
+    </>
   );
 }
 

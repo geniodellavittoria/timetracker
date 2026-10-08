@@ -53,11 +53,23 @@ describe('validateEntryInput', () => {
     }
   });
 
-  it('rejects a special day that carries times', () => {
-    expect(codes(specialDay('vacation', [{ arrival: '08:00', leave: '17:00', breakMinutes: 0 }])))
-      .toEqual(['times_not_allowed_for_special_day']);
-    expect(codes(specialDay('sick', [{ arrival: '08:00', leave: '17:00', breakMinutes: 30 }])))
-      .toEqual(['times_not_allowed_for_special_day']);
+  it('accepts extra time on a special day', () => {
+    expect(codes(specialDay('vacation', [{ arrival: '08:00', leave: '10:00', breakMinutes: 0 }]))).toEqual([]);
+    expect(codes(specialDay('sick', [
+      { arrival: '08:00', leave: '09:00', breakMinutes: 0 },
+      { arrival: '20:00', leave: '21:30', breakMinutes: 15 },
+    ]))).toEqual([]);
+  });
+
+  it("checks extra time on a special day like a normal day's blocks", () => {
+    expect(codes(specialDay('vacation', [{ arrival: '10:00', leave: '09:00', breakMinutes: 0 }])))
+      .toEqual(['leave_not_after_arrival']);
+    expect(codes(specialDay('holiday', [{ arrival: '09:00', leave: '10:00', breakMinutes: 90 }])))
+      .toEqual(['break_exceeds_span']);
+    expect(codes(specialDay('vacation', [
+      { arrival: '08:00', leave: '10:00', breakMinutes: 0 },
+      { arrival: '09:00', leave: '11:00', breakMinutes: 0 },
+    ]))).toEqual(['blocks_overlap']);
   });
 
   it('accepts multiple non-overlapping blocks, in any input order', () => {

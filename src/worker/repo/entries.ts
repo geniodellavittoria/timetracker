@@ -14,10 +14,12 @@ interface EntryRow {
 const COLUMNS = 'date, day_type, arrival_minutes, leave_minutes, break_minutes, note, updated_at';
 
 /**
- * One row per block (normal days) or one lone row (special days) comes back
+ * One row per block (normal days), or one row without times (special days)
+ * plus a `normal` row per block of extra time worked that day, comes back
  * from SQL; this is the single place they get folded into one `TimeEntry`
- * per date. Rows must already be ordered by date, then by arrival, for the
- * blocks to come out in a sane order.
+ * per date. A special row, wherever it sorts, sets the day type. Rows must
+ * already be ordered by date, then by arrival, for the blocks to come out in
+ * a sane order.
  */
 function groupRows(rows: EntryRow[]): TimeEntry[] {
   const order: string[] = [];
@@ -35,6 +37,10 @@ function groupRows(rows: EntryRow[]): TimeEntry[] {
       };
       byDate.set(row.date, entry);
       order.push(row.date);
+    }
+    if (row.day_type !== 'normal') {
+      entry.dayType = row.day_type as TimeEntry['dayType'];
+      entry.note = row.note;
     }
     if (row.arrival_minutes !== null && row.leave_minutes !== null) {
       entry.blocks.push({
@@ -75,8 +81,8 @@ export async function getEntry(db: D1Database, userId: number, date: IsoDate): P
 
 /**
  * Replaces the whole day in one atomic batch — delete whatever rows exist
- * for this date, then insert the new set (one row per block on a normal
- * day, one row with no times on a special day). A day is no longer
+ * for this date, then insert the new set (one row per block; a special day
+ * adds one row with no times, and its blocks are extra time worked). A day is no longer
  * guaranteed exactly one row (a normal day can carry several blocks), so
  * there's no single-row `ON CONFLICT` target to upsert against; replacing
  * the day wholesale is both simpler and matches how the client already
@@ -92,18 +98,7 @@ export async function upsertEntry(
 
   const statements = [db.prepare('DELETE FROM entries WHERE user_id = ?1 AND date = ?2').bind(userId, date)];
 
-  if (input.dayType === 'normal') {
-    for (const block of input.blocks) {
-      statements.push(
-        db
-          .prepare(
-            `INSERT INTO entries (user_id, date, day_type, arrival_minutes, leave_minutes, break_minutes, note, updated_at)
-             VALUES (?1, ?2, 'normal', ?3, ?4, ?5, ?6, strftime('%Y-%m-%dT%H:%M:%SZ','now'))`,
-          )
-          .bind(userId, date, parseTimeOfDay(block.arrival), parseTimeOfDay(block.leave), block.breakMinutes, input.note ?? null),
-      );
-    }
-  } else {
+  if (input.dayType !== 'normal') {
     statements.push(
       db
         .prepare(
@@ -111,6 +106,18 @@ export async function upsertEntry(
            VALUES (?1, ?2, ?3, ?4, strftime('%Y-%m-%dT%H:%M:%SZ','now'))`,
         )
         .bind(userId, date, input.dayType, input.note ?? null),
+    );
+  }
+  // The schema only allows times on `normal` rows, so a special day's extra
+  // time is stored as normal rows next to its special row.
+  for (const block of input.blocks) {
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO entries (user_id, date, day_type, arrival_minutes, leave_minutes, break_minutes, note, updated_at)
+           VALUES (?1, ?2, 'normal', ?3, ?4, ?5, ?6, strftime('%Y-%m-%dT%H:%M:%SZ','now'))`,
+        )
+        .bind(userId, date, parseTimeOfDay(block.arrival), parseTimeOfDay(block.leave), block.breakMinutes, input.note ?? null),
     );
   }
 

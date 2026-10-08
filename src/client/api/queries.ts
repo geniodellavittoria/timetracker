@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   AuthUser, DayType, GroupBy, IsoDate, RangeSummary, Settings, SettingsPeriod, SettingsPeriodInput, TimeEntry,
-  TimeEntryInput, VacationAllowance, VacationAllowanceInput, VacationSummary,
+  TimeEntryInput, VacationAllowance, VacationAllowanceInput, VacationSummary, YearComparisonResponse,
 } from '@shared/types.ts';
 import { api } from './client.ts';
 
@@ -10,6 +10,8 @@ export const queryKeys = {
   settings: ['settings'] as const,
   summary: (from: IsoDate, to: IsoDate, groupBy: GroupBy, today: IsoDate) =>
     ['summary', from, to, groupBy, today] as const,
+  // Under 'summary' so the entry/settings mutations' invalidation refreshes it too.
+  yearComparison: (today: IsoDate) => ['summary', 'years', today] as const,
   entriesRange: (from: IsoDate, to: IsoDate) => ['entries', from, to] as const,
   vacationSummary: (year: number, today: IsoDate) => ['vacation', 'summary', year, today] as const,
 };
@@ -128,6 +130,13 @@ export function useSummary({ from, to, groupBy, today }: SummaryArgs) {
         `/summary?from=${from}&to=${to}&groupBy=${groupBy}&today=${today}`,
       ),
     placeholderData: (previous) => previous,
+  });
+}
+
+export function useYearComparison(today: IsoDate) {
+  return useQuery({
+    queryKey: queryKeys.yearComparison(today),
+    queryFn: () => api.get<YearComparisonResponse>(`/summary/years?today=${today}`),
   });
 }
 

@@ -11,6 +11,7 @@ import { MonthPage } from './pages/MonthPage.tsx';
 import { RegisterPage } from './pages/RegisterPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
 import { WeekPage } from './pages/WeekPage.tsx';
+import { YearComparePage } from './pages/YearComparePage.tsx';
 import { useLogout, useMe, useSummary } from './api/queries.ts';
 
 export function App() {
@@ -43,13 +44,14 @@ function AuthenticatedApp() {
         <nav>
           <NavLink to={`/weeks/${isoWeekKey(today)}`}>Woche</NavLink>
           <NavLink to={`/months/${monthKey(today)}`}>Monat</NavLink>
+          <NavLink to="/years">Jahre</NavLink>
           <NavLink to="/settings">Einstellungen</NavLink>
         </nav>
         <span className="spacer" />
         <CumulativeBalance />
         <VacationBadge />
         <div className="header-account">
-          {user && <span className="faint small">{user.email}</span>}
+          {user && <span className="faint small header-email" title={user.email}>{user.email}</span>}
           <ThemeToggle />
           <button type="button" className="ghost small" onClick={() => logout.mutate()} disabled={logout.isPending}>
             Abmelden
@@ -62,6 +64,7 @@ function AuthenticatedApp() {
           <Route path="/" element={<Navigate to={`/weeks/${isoWeekKey(today)}`} replace />} />
           <Route path="/weeks/:weekKey" element={<WeekPage />} />
           <Route path="/months/:monthKey" element={<MonthPage />} />
+          <Route path="/years" element={<YearComparePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

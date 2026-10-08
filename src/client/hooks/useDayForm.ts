@@ -22,13 +22,15 @@ const AUTOSAVE_DELAY_MS = 600;
 const emptyBlock = (): TimeBlockDraft => ({ arrival: '', leave: '', breakMinutes: 0 });
 
 function draftFrom(entry: TimeEntry | null): DayDraft {
+  const dayType = entry?.dayType ?? 'normal';
   return {
-    dayType: entry?.dayType ?? 'normal',
+    dayType,
     // A brand new normal day starts with one empty block ready to type into,
-    // matching the old single-block UI's default state.
+    // matching the old single-block UI's default state. A special day starts
+    // with none — extra time on it is opt-in.
     blocks: entry && entry.blocks.length > 0
       ? entry.blocks.map((b) => ({ ...b }))
-      : [emptyBlock()],
+      : dayType === 'normal' ? [emptyBlock()] : [],
     note: entry?.note ?? '',
   };
 }
@@ -44,11 +46,8 @@ function noteOf(draft: Pick<DayDraft, 'note'>): string | null {
 }
 
 export function draftToInput(draft: DayDraft): TimeEntryInput {
-  if (draft.dayType !== 'normal') {
-    return { dayType: draft.dayType, blocks: [], note: noteOf(draft) };
-  }
   return {
-    dayType: 'normal',
+    dayType: draft.dayType,
     blocks: draft.blocks.filter((b) => !isBlankBlock(b)).map((b) => ({ ...b })),
     note: noteOf(draft),
   };
@@ -75,7 +74,7 @@ function persistedSignatureOf(entry: TimeEntry | null): string {
  * moment later.
  */
 function withPendingBlanks(next: DayDraft, prev: DayDraft): DayDraft {
-  if (next.dayType !== 'normal' || prev.dayType !== 'normal') return next;
+  if (next.dayType !== prev.dayType) return next;
   const pending = prev.blocks.filter(isBlankBlock).length;
   if (pending === 0) return next;
   const filled = next.blocks.filter((b) => !isBlankBlock(b));
@@ -106,8 +105,9 @@ export function useDayForm({
   const [dirty, setDirty] = useState(false);
 
   // Remembers blocks across a switch to Vacation and back, so toggling day
-  // type by accident does not throw away what was typed.
-  const stashedBlocks = useRef<TimeBlockDraft[]>(draft.blocks);
+  // type by accident does not throw away what was typed. A normal day's
+  // blocks are never carried over as a special day's extra time.
+  const stashedBlocks = useRef<TimeBlockDraft[]>(draft.blocks.length > 0 ? draft.blocks : [emptyBlock()]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -171,9 +171,10 @@ export function useDayForm({
 
       if (patch.dayType && patch.dayType !== prev.dayType) {
         if (prev.dayType === 'normal') stashedBlocks.current = prev.blocks;
-        return patch.dayType === 'normal'
-          ? { ...next, blocks: stashedBlocks.current }
-          : { ...next, blocks: [] };
+        if (patch.dayType !== 'normal') return { ...next, blocks: prev.dayType === 'normal' ? [] : prev.blocks };
+        // Extra time already entered on the special day is real work; keep it.
+        const extra = prev.dayType !== 'normal' && prev.blocks.some((b) => !isBlankBlock(b));
+        return { ...next, blocks: extra ? prev.blocks : stashedBlocks.current };
       }
       return next;
     });

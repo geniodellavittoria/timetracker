@@ -1,5 +1,5 @@
-import { Hono } from 'hono';
-import { buildRangeSummary, cumulativeBalance } from '@shared/calc.ts';
+import { Hono, type Context } from 'hono';
+import { buildRangeSummary, buildYearComparison, cumulativeBalance } from '@shared/calc.ts';
 import { isValidIsoDate } from '@shared/dates.ts';
 import { groupBySchema, validateRange } from '@shared/validation.ts';
 import type { HonoEnv } from '../env.ts';
@@ -8,6 +8,24 @@ import { listEntries, listEntriesUpTo } from '../repo/entries.ts';
 import { listSettingsPeriods } from '../repo/settings.ts';
 
 export const summaryRoutes = new Hono<HonoEnv>();
+
+/*
+ * `today` comes from the browser. Workers run in UTC, so deriving it here
+ * would call an entry made at 01:00 in Zurich "tomorrow" and flag the real
+ * today as an untracked workday. The UTC fallback only applies to callers
+ * (curl, tests) that omit the parameter. `null` means it was given but invalid.
+ */
+function todayFrom(c: Context<HonoEnv>): string | null {
+  const todayParam = c.req.query('today');
+  if (todayParam === undefined) return new Date().toISOString().slice(0, 10);
+  return isValidIsoDate(todayParam) ? todayParam : null;
+}
+
+function invalidToday(c: Context<HonoEnv>) {
+  return validationError(c, [
+    { path: 'today', code: 'invalid_date', message: '`today` muss ein gültiges Datum (JJJJ-MM-TT) sein.' },
+  ]);
+}
 
 summaryRoutes.get('/', async (c) => {
   const from = c.req.query('from');
@@ -22,19 +40,8 @@ summaryRoutes.get('/', async (c) => {
     ]);
   }
 
-  /*
-   * `today` comes from the browser. Workers run in UTC, so deriving it here
-   * would call an entry made at 01:00 in Zurich "tomorrow" and flag the real
-   * today as an untracked workday. The UTC fallback only applies to callers
-   * (curl, tests) that omit the parameter.
-   */
-  const todayParam = c.req.query('today');
-  if (todayParam !== undefined && !isValidIsoDate(todayParam)) {
-    return validationError(c, [
-      { path: 'today', code: 'invalid_date', message: '`today` muss ein gültiges Datum (JJJJ-MM-TT) sein.' },
-    ]);
-  }
-  const today = todayParam ?? new Date().toISOString().slice(0, 10);
+  const today = todayFrom(c);
+  if (today === null) return invalidToday(c);
 
   const userId = c.get('userId');
   const settings = await listSettingsPeriods(c.env.DB, userId);
@@ -55,4 +62,18 @@ summaryRoutes.get('/', async (c) => {
       cumulativeBalanceMinutes: cumulativeBalance(allEntriesUpTo, settings),
     }),
   );
+});
+
+/** Worked time per ISO week for every year with entries, for the year comparison page. */
+summaryRoutes.get('/years', async (c) => {
+  const today = todayFrom(c);
+  if (today === null) return invalidToday(c);
+
+  const userId = c.get('userId');
+  const [settings, entries] = await Promise.all([
+    listSettingsPeriods(c.env.DB, userId),
+    listEntriesUpTo(c.env.DB, userId, today),
+  ]);
+
+  return c.json(buildYearComparison({ entries, settings, today }));
 });

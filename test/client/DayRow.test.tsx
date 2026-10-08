@@ -103,6 +103,37 @@ describe('DayRow', () => {
     expect(screen.getByText(/zählt als Ziel/)).toBeInTheDocument();
   });
 
+  it('lets extra time be logged on a vacation day, as overtime on top of the target', async () => {
+    const user = userEvent.setup();
+    const vacation: TimeEntry = { date: MON, dayType: 'vacation', blocks: [], note: null, updatedAt: 'x' };
+    const { onSave } = renderRow(MON, fullTime, vacation);
+
+    expect(screen.queryByLabelText('Kommen')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '+ Zusätzliche Zeit erfassen' }));
+    await user.type(screen.getByLabelText('Kommen'), '09:00');
+    await user.type(screen.getByLabelText('Gehen'), '11:00');
+    await user.tab();
+
+    // 8 Std 24 Min credited + 2 Std worked.
+    expect(screen.getByText('10 Std 24 Min')).toBeInTheDocument();
+    expect(screen.getByText('+2 Std 00 Min')).toBeInTheDocument();
+    await waitFor(() => expect(savedPayloads(onSave)).toContainEqual({
+      dayType: 'vacation', blocks: [{ arrival: '09:00', leave: '11:00', breakMinutes: 0 }], note: null,
+    }));
+  });
+
+  it('removes extra time from a vacation day entirely, keeping the day vacation', async () => {
+    const user = userEvent.setup();
+    const vacation: TimeEntry = {
+      date: MON, dayType: 'vacation', blocks: [{ arrival: '09:00', leave: '11:00', breakMinutes: 0 }], note: null, updatedAt: 'x',
+    };
+    const { onSave } = renderRow(MON, fullTime, vacation);
+
+    await user.click(screen.getByRole('button', { name: 'Zeitblock 1 entfernen' }));
+    expect(screen.getByRole('button', { name: '+ Zusätzliche Zeit erfassen' })).toBeInTheDocument();
+    await waitFor(() => expect(savedPayloads(onSave)).toContainEqual({ dayType: 'vacation', blocks: [], note: null }));
+  });
+
   it('shows an error and refuses to save when breaks exceed the span', async () => {
     const user = userEvent.setup();
     const { onSave } = renderRow(MON, fullTime);

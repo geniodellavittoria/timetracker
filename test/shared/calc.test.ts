@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  aggregateTotals, balanceMinutesFor, buildRangeSummary, cumulativeBalance,
+  aggregateTotals, balanceMinutesFor, buildRangeSummary, buildYearComparison, cumulativeBalance,
   distributeWeeklyTarget, isDayOff, periodFor, runningBalance, summarizeDay, targetMinutesFor, weeklyTargetMinutes,
   workedMinutesFor,
 } from '@shared/calc.ts';
@@ -66,6 +66,18 @@ describe('workedMinutesFor', () => {
     const vacation = specialDay(TUE, 'vacation');
     expect(workedMinutesFor(vacation, fullTime)).toBe(504);
     expect(balanceMinutesFor(vacation, fullTime)).toBe(0);
+  });
+
+  it('adds extra time worked on a special day on top of the credited target', () => {
+    const vacation = { ...specialDay(TUE, 'vacation'), blocks: [{ arrival: '09:00', leave: '11:00', breakMinutes: 0 }] };
+    expect(workedMinutesFor(vacation, fullTime)).toBe(504 + 120);
+    expect(balanceMinutesFor(vacation, fullTime)).toBe(120);
+  });
+
+  it('counts extra time on a holiday on a day off as pure overtime', () => {
+    const holiday = { ...specialDay(SAT, 'holiday'), blocks: [{ arrival: '09:00', leave: '11:00', breakMinutes: 0 }] };
+    expect(workedMinutesFor(holiday, fullTime)).toBe(120);
+    expect(balanceMinutesFor(holiday, fullTime)).toBe(120);
   });
 
   it('counts a holiday on a zero-target day as nothing', () => {
@@ -322,5 +334,70 @@ describe('buildRangeSummary bucketing', () => {
     });
     expect(summary.buckets).toEqual([]);
     expect(summary.days).toHaveLength(7);
+  });
+});
+
+describe('buildYearComparison', () => {
+  const absence = (date: string, dayType: DayType): TimeEntry => ({ ...entry(date), dayType, blocks: [] });
+
+  it('groups by ISO week-year, so 1 Jan 2027 lands in 2026-W53', () => {
+    const result = buildYearComparison({
+      entries: [entry('2025-03-03'), entry('2027-01-01')],
+      settings: fullTime,
+      today: '2027-01-10',
+    });
+    expect(result.years.map((y) => y.year)).toEqual([2025, 2026]);
+    expect(result.years[0]!.weeks).toHaveLength(52);
+    expect(result.years[1]!.weeks).toHaveLength(53);
+    expect(result.years[1]!.weeks[52]!.workedMinutes).toBe(540);
+  });
+
+  it('counts only normal days as worked and reports absences separately', () => {
+    const result = buildYearComparison({
+      entries: [entry(MON), entry(TUE, { leave: '12:00' }), absence(WED, 'vacation'), absence(THU, 'holiday')],
+      settings: fullTime,
+      today: SUN,
+    });
+    const w34 = result.years[0]!.weeks[33]!;
+    expect(w34).toEqual({ week: 34, workedMinutes: 540 + 240, targetMinutes: 5 * 504, absenceDays: 2 });
+    expect(result.years[0]!.totals).toEqual({
+      workedMinutes: 780,
+      absenceDays: 2,
+      // Mon +36, Tue −264; absences are on target.
+      balanceMinutes: 36 - 264,
+      workedWeekCount: 1,
+    });
+  });
+
+  it('counts extra time on an absence day as worked, and the day as an absence', () => {
+    const vacation = { ...absence(WED, 'vacation'), blocks: [{ arrival: '09:00', leave: '11:00', breakMinutes: 0 }] };
+    const w34 = buildYearComparison({ entries: [vacation], settings: fullTime, today: SUN }).years[0]!.weeks[33]!;
+    expect(w34).toMatchObject({ workedMinutes: 120, absenceDays: 1 });
+  });
+
+  it('leaves weeks without a normal day as null, including all-absence and future weeks', () => {
+    const result = buildYearComparison({
+      entries: [entry(MON), absence('2026-08-24', 'vacation')],
+      settings: fullTime,
+      today: TUE,
+    });
+    const weeks = result.years[0]!.weeks;
+    expect(weeks[32]!.workedMinutes).toBeNull();
+    expect(weeks[34]!.workedMinutes).toBeNull();
+    expect(weeks[52]!.workedMinutes).toBeNull();
+  });
+
+  it("takes each week's target from the Pensum period valid then", () => {
+    const history: Settings = [
+      fullTime[0]!,
+      { ...partTime[0]!, id: 2, effectiveFrom: '2026-09-01' },
+    ];
+    const weeks = buildYearComparison({ entries: [entry(MON)], settings: history, today: SUN }).years[0]!.weeks;
+    expect(weeks[33]!.targetMinutes).toBe(5 * 504);
+    expect(weeks[36]!.targetMinutes).toBe(4 * 504);
+  });
+
+  it('returns no years without entries', () => {
+    expect(buildYearComparison({ entries: [], settings: fullTime, today: SUN }).years).toEqual([]);
   });
 });

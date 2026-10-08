@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  addDays, addMonths, addWeeks, eachDateInRange, endOfIsoWeek, endOfMonth, isoWeekKey,
+  addDays, addMonths, addWeeks, eachDateInRange, endOfIsoWeek, endOfMonth, isoWeekKey, isoWeeksInYear,
   isoWeekKeyToRange, isValidIsoDate, isValidIsoWeekKey, mostRecentAugustFirst, startOfIsoWeek,
   todayIsoDateLocal, weekdayOf,
 } from '@shared/dates.ts';
@@ -39,6 +39,13 @@ describe('weekdayOf', () => {
 });
 
 describe('ISO weeks', () => {
+  it('knows which ISO years have a week 53', () => {
+    expect(isoWeeksInYear(2026)).toBe(53);
+    expect(isoWeeksInYear(2020)).toBe(53);
+    expect(isoWeeksInYear(2025)).toBe(52);
+    expect(isoWeeksInYear(2027)).toBe(52);
+  });
+
   it.each([
     ['2026-01-01', '2026-W01'],
     ['2027-01-01', '2026-W53'],

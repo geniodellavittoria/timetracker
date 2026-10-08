@@ -112,6 +112,11 @@ export function isValidIsoWeekKey(key: string): boolean {
   return isoWeekKey(isoWeekKeyToRange(key).from) === key;
 }
 
+/** 53 for ISO week-years that have a week 53, otherwise 52. */
+export function isoWeeksInYear(year: number): 52 | 53 {
+  return isValidIsoWeekKey(`${year}-W53`) ? 53 : 52;
+}
+
 export function isoWeekKeyToRange(key: string): { from: IsoDate; to: IsoDate } {
   const m = /^(\d{4})-W(\d{2})$/.exec(key);
   if (!m) throw new RangeError(`Not an ISO week key: ${key}`);

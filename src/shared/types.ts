@@ -124,6 +124,37 @@ export interface RangeSummary {
   cumulativeBalanceMinutes: number;
 }
 
+/** One ISO week of one year in the year-over-year comparison. */
+export interface YearWeekPoint {
+  week: number;
+  /** Time actually worked (time blocks, also extra time on absence days); `null` if none that week. */
+  workedMinutes: number | null;
+  /** The week's scheduled target, tracked or not. */
+  targetMinutes: number;
+  /** Ferien, Feiertag and Krank days. Credited as target elsewhere, but not "worked" here. */
+  absenceDays: number;
+}
+
+export interface YearComparison {
+  /** ISO week-year, so week 1 of every year lines up. */
+  year: number;
+  weeks: YearWeekPoint[];
+  totals: {
+    workedMinutes: number;
+    absenceDays: number;
+    /** Same balance as everywhere else (absences count as on target). */
+    balanceMinutes: number;
+    /** Weeks with any worked time. */
+    workedWeekCount: number;
+  };
+}
+
+export interface YearComparisonResponse {
+  today: IsoDate;
+  /** Every ISO week-year with at least one entry, ascending. */
+  years: YearComparison[];
+}
+
 /**
  * A Ferien allowance for one Ferien year, which runs 1 Aug – 31 Jul. `year` is
  * the start year, so 2026 covers 2026-08-01 … 2027-07-31.

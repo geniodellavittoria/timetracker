@@ -28,6 +28,24 @@ describe('entries CRUD', () => {
     expect(list.entries[0].blocks).toEqual([{ arrival: '08:00', leave: '18:00', breakMinutes: 30 }]);
   });
 
+  it('keeps extra time on a vacation day, counts it as overtime, and drops it again', async () => {
+    const extra = { arrival: '09:00', leave: '11:00', breakMinutes: 0 };
+    const created = await putJson('/api/entries/2026-08-18', { dayType: 'vacation', blocks: [extra], note: 'Mails' });
+    expect(created.status).toBe(201);
+    await expect(created.json()).resolves.toMatchObject({ dayType: 'vacation', blocks: [extra], note: 'Mails' });
+
+    const summary = await (await request('/api/summary?from=2026-08-18&to=2026-08-18&today=2026-08-20')).json() as any;
+    expect(summary.days[0]).toMatchObject({ dayType: 'vacation', workedMinutes: 504 + 120, balanceMinutes: 120 });
+
+    await putJson('/api/entries/2026-08-18', { dayType: 'vacation' });
+    const reread = await (await request('/api/entries/2026-08-18')).json() as any;
+    expect(reread).toMatchObject({ dayType: 'vacation', blocks: [] });
+
+    await putJson('/api/entries/2026-08-18', normalDay());
+    const normal = await (await request('/api/entries/2026-08-18')).json() as any;
+    expect(normal).toMatchObject({ dayType: 'normal', blocks: [{ arrival: '08:00', leave: '17:00', breakMinutes: 0 }] });
+  });
+
   it('reads a single entry and 404s for a missing one', async () => {
     await putJson('/api/entries/2026-08-17', normalDay());
     expect((await request('/api/entries/2026-08-17')).status).toBe(200);
@@ -88,12 +106,12 @@ describe('entries validation', () => {
     );
   });
 
-  it('rejects a special day carrying times', async () => {
+  it('still checks extra time on a special day', async () => {
     await expectIssue(
       await putJson('/api/entries/2026-08-18', {
-        dayType: 'vacation', blocks: [{ arrival: '08:00', leave: '17:00', breakMinutes: 0 }],
+        dayType: 'vacation', blocks: [{ arrival: '17:00', leave: '08:00', breakMinutes: 0 }],
       }),
-      'times_not_allowed_for_special_day',
+      'leave_not_after_arrival',
     );
   });
 
