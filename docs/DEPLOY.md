@@ -137,32 +137,43 @@ Three layers, from most to least recent:
 | Layer | Covers | Kept for |
 |---|---|---|
 | D1 Time Travel (built in, always on) | Any minute | 30 days (Workers Paid) / 7 days (Free) |
-| Pre-deploy dump (`ci.yml`, before migrations run) | State right before each deploy | Server retention |
-| Nightly dump (`backup.yml`, 02:00 UTC) | Daily state, outside Cloudflare | Server retention |
+| Pre-deploy dump (`ci.yml`, before migrations run) | State right before each deploy | 90 days in R2, indefinitely on the NAS |
+| Nightly dump (`backup.yml`, 02:00 UTC) | Daily state | 90 days in R2, indefinitely on the NAS |
 
-Both dumps are made by `scripts/backup-to-sftp.sh` and uploaded as
-`timetracker-<UTC timestamp>-<label>.sql.gz` to the file server. The repo is
-public, so dumps are **never** stored as Actions artifacts. A failed
-pre-deploy backup blocks the deploy.
+Both dumps are made by `scripts/backup-to-r2.sh` and uploaded as
+`timetracker-<UTC timestamp>-<label>.sql.gz` to the private R2 bucket
+`timetracker-backups`. A Synology NAS mirrors that bucket with Cloud Sync, so
+a copy exists outside Cloudflare. The repo is public, so dumps are **never**
+stored as Actions artifacts. A failed pre-deploy backup blocks the deploy.
 
 ### Setup
 
-Repository secrets (Settings → Secrets and variables → Actions):
+**Cloudflare (once):**
 
-| Secret | Value |
-|---|---|
-| `BACKUP_SFTP_HOST` | File server hostname |
-| `BACKUP_SFTP_PORT` | Optional, defaults to 22 |
-| `BACKUP_SFTP_USER` | Dedicated backup user |
-| `BACKUP_SFTP_PATH` | Existing directory to upload into |
-| `BACKUP_SSH_KEY` | Private key (`ssh-keygen -t ed25519 -N ''`), public half in the user's `authorized_keys` |
-| `BACKUP_SSH_KNOWN_HOSTS` | Output of `ssh-keyscan -p <port> <host>` — verify the fingerprint |
+```bash
+npx wrangler r2 bucket create timetracker-backups
+npx wrangler r2 bucket lifecycle add timetracker-backups expire-old --expire-days 90
+```
 
-On the server: give the backup user write access to that directory only
-(ideally chrooted, SFTP-only), and prune old files there, e.g. a daily cron
-`find /path/to/backups -name 'timetracker-*.sql.gz' -mtime +180 -delete`.
+Then give the CI token (`CLOUDFLARE_API_TOKEN` secret) the extra permission
+**Workers R2 Storage: Edit**. No other secrets are needed.
 
-Run **Actions → Backup → Run workflow** once to confirm the setup.
+**Synology NAS (Cloud Sync):**
+
+1. Cloudflare dashboard → R2 → **Manage API tokens** → create a token with
+   **Object Read only**, limited to `timetracker-backups`. Note the Access Key
+   ID, Secret Access Key and the endpoint
+   `https://<account id>.r2.cloudflarestorage.com`.
+2. DSM → Package Center → install **Cloud Sync**.
+3. Cloud Sync → **+** → **S3 Storage** → Server address: custom, the endpoint
+   above; enter both keys; bucket `timetracker-backups`.
+4. Local path: any folder on the NAS (e.g. `backups/timetracker`). Sync
+   direction **Download remote changes only**, and tick **Don't remove files
+   in the destination folder when they are removed in the source folder** —
+   otherwise R2's 90-day expiry deletes the NAS copies too.
+
+Run **Actions → Backup → Run workflow** once; the file should appear in R2 and
+shortly after in File Station.
 
 ### Restore
 
@@ -176,9 +187,10 @@ npx wrangler d1 time-travel restore timetracker --bookmark=<bookmark>
 
 **From a dump** — for when the database itself is gone. The `package.json`
 scripts and the backup script refer to it by name, so recreate it as
-`timetracker`:
+`timetracker`. Take the dump from the NAS, or from R2:
 
 ```bash
+npx wrangler r2 object get timetracker-backups/timetracker-<...>.sql.gz --file timetracker-<...>.sql.gz --remote
 gunzip timetracker-<...>.sql.gz
 npx wrangler d1 create timetracker
 # put the new id into wrangler.jsonc (database_id), then:
